@@ -545,23 +545,65 @@ class BoxRecon:
             self.responsive_web_ports = []
             
             # Common web service patterns
-            web_services = ['http', 'https', 'http-proxy', 'http-alt', 'ssl/http', 'ssl/https']
+            web_services = ['http', 'https', 'http-proxy', 'http-alt', 'ssl/http', 'ssl/https', 'www', 'web']
             
-            # Parse nmap output for open ports
-            port_lines = re.findall(r'(\d+)/tcp\s+open\s+([^\s]+)', content)
+            # Parse nmap output for open ports - more flexible regex patterns
+            # Pattern 1: Standard format with service name
+            port_lines = re.findall(r'(\d+)/tcp\s+open\s+([^\s]+(?:\s+[^\s]+)*)', content)
+            
+            # Pattern 2: Just port/tcp open (without service name)
+            if not port_lines:
+                port_lines = re.findall(r'(\d+)/tcp\s+open', content)
+                port_lines = [(port, 'unknown') for port in port_lines]
+            
+            # Debug output
+            if port_lines:
+                print(f"{Colors.BLUE}📝 Debug - Found ports in nmap output: {port_lines}{Colors.END}")
             
             for port_num, service in port_lines:
                 port = int(port_num)
                 self.open_ports.append(port)
                 
+                # Check if it's a web service - be more inclusive
+                # Standard web ports
+                standard_web_ports = [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000, 8081, 8082, 8090]
+                
                 # Check if it's a web service
-                if (service.lower() in web_services or 
-                    port in [80, 443, 8080, 8443, 8000, 8888, 9000, 3000] or
-                    'http' in service.lower()):
+                is_web_service = False
+                
+                # Check by port number first (most reliable)
+                if port in standard_web_ports:
+                    is_web_service = True
+                    if port == 80 or port == 8080:
+                        print(f"{Colors.GREEN}🌐 Port {port} detected as HTTP (standard web port){Colors.END}")
+                    elif port == 443 or port == 8443:
+                        print(f"{Colors.GREEN}🌐 Port {port} detected as HTTPS (standard SSL port){Colors.END}")
+                
+                # Check by service name
+                elif service and service.lower() != 'unknown':
+                    service_lower = service.lower()
+                    # Check if any web service pattern matches
+                    if any(ws in service_lower for ws in web_services):
+                        is_web_service = True
+                        print(f"{Colors.GREEN}🌐 Port {port} detected as web service (service: {service}){Colors.END}")
+                
+                if is_web_service:
                     self.web_ports.append(port)
             
             if self.open_ports:
                 print(f"{Colors.GREEN}🔓 Discovered {len(self.open_ports)} open ports: {sorted(self.open_ports)}{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️  Warning: No open ports detected in nmap output. Parsing may have failed.{Colors.END}")
+                # Try alternative parsing as last resort
+                alt_ports = re.findall(r'(\d+)/tcp', content)
+                if alt_ports:
+                    print(f"{Colors.YELLOW}📝 Found ports using alternative parsing: {alt_ports}{Colors.END}")
+                    for port_str in alt_ports:
+                        port = int(port_str)
+                        self.open_ports.append(port)
+                        if port in [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000]:
+                            self.web_ports.append(port)
+                            print(f"{Colors.GREEN}🌐 Port {port} added as web service (fallback detection){Colors.END}")
             
             if self.web_ports:
                 print(f"{Colors.CYAN}🌐 Detected {len(self.web_ports)} web services on ports: {sorted(self.web_ports)}{Colors.END}")
@@ -609,6 +651,27 @@ class BoxRecon:
             return True  # Always run non-web scans
         
         if not self.web_ports:
+            print(f"{Colors.YELLOW}⚠️  No web services automatically detected for {scan_type.replace('_', ' ').title()}{Colors.END}")
+            
+            # Check if common web ports are in the open ports list as a fallback
+            common_web_ports = [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000]
+            found_web_ports = [port for port in self.open_ports if port in common_web_ports]
+            
+            if found_web_ports:
+                print(f"{Colors.YELLOW}🔧 Found potential web ports in open ports list: {found_web_ports}{Colors.END}")
+                self.web_ports.extend(found_web_ports)
+                self.web_ports = list(set(self.web_ports))  # Remove duplicates
+                print(f"{Colors.GREEN}✅ Added {found_web_ports} to web ports list - proceeding with scan{Colors.END}")
+                return True
+            
+            # Last resort - ask user
+            print(f"{Colors.YELLOW}Would you like to force web scans anyway? Common for HTB boxes.{Colors.END}")
+            force = input(f"{Colors.CYAN}Force web scan on port 80? (y/N): {Colors.END}").strip().lower()
+            if force in ['y', 'yes']:
+                self.web_ports.append(80)
+                print(f"{Colors.GREEN}✅ Forcing web scan on port 80{Colors.END}")
+                return True
+            
             print(f"{Colors.YELLOW}⏭️  Skipping {scan_type.replace('_', ' ').title()} - No web services found{Colors.END}")
             return False
         
