@@ -552,9 +552,10 @@ class BoxRecon:
                     }
                     
             except Exception as e:
+                last_error = str(e)
                 continue
         
-        return {'responsive': False, 'protocol': 'http', 'error': str(e)}
+        return {'responsive': False, 'protocol': 'http', 'error': last_error if 'last_error' in locals() else 'Connection failed'}
     
     def parse_nmap_output_for_ports(self, output_file: str) -> None:
         """Parse nmap output to extract open ports and identify web services"""
@@ -571,8 +572,20 @@ class BoxRecon:
             web_services = ['http', 'https', 'http-proxy', 'http-alt', 'ssl/http', 'ssl/https', 'www', 'web']
             
             # Parse nmap output for open ports - more flexible regex patterns
-            # Pattern 1: Standard format with service name
-            port_lines = re.findall(r'(\d+)/tcp\s+open\s+([^\s]+(?:\s+[^\s]+)*)', content)
+            # Pattern 1: Standard format - match until end of line only
+            port_lines = re.findall(r'(\d+)/tcp\s+open\s+([^\n]+)', content)
+            
+            # Clean up service names (take only first few words)
+            cleaned_port_lines = []
+            for port, service in port_lines:
+                # Split service string and take only first 2-3 words
+                service_words = service.strip().split()
+                if service_words:
+                    service_clean = ' '.join(service_words[:3])  # Take max 3 words
+                else:
+                    service_clean = 'unknown'
+                cleaned_port_lines.append((port, service_clean))
+            port_lines = cleaned_port_lines
             
             # Pattern 2: Just port/tcp open (without service name)
             if not port_lines:
@@ -586,6 +599,9 @@ class BoxRecon:
             for port_num, service in port_lines:
                 port = int(port_num)
                 self.open_ports.append(port)
+                
+                # Debug output for service detection
+                print(f"{Colors.BLUE}📌 Checking port {port} with service: '{service}'{Colors.END}")
                 
                 # Check if it's a web service - be more inclusive
                 # Standard web ports
@@ -605,10 +621,19 @@ class BoxRecon:
                 # Check by service name
                 elif service and service.lower() != 'unknown':
                     service_lower = service.lower()
+                    # Exclude SSH and other non-web services
+                    non_web_services = ['ssh', 'telnet', 'ftp', 'smtp', 'pop3', 'imap', 'rdp', 'vnc', 'mysql', 'postgresql', 'mssql', 'oracle', 'smb', 'netbios']
+                    
+                    # Check if it's definitely not a web service
+                    if any(nws in service_lower for nws in non_web_services):
+                        is_web_service = False
+                        print(f"{Colors.YELLOW}➖ Port {port} excluded - Non-web service detected: {service}{Colors.END}")
                     # Check if any web service pattern matches
-                    if any(ws in service_lower for ws in web_services):
+                    elif any(ws in service_lower for ws in web_services):
                         is_web_service = True
                         print(f"{Colors.GREEN}🌐 Port {port} detected as web service (service: {service}){Colors.END}")
+                    else:
+                        print(f"{Colors.YELLOW}❓ Port {port} - Unknown service type: {service}{Colors.END}")
                 
                 if is_web_service:
                     self.web_ports.append(port)
