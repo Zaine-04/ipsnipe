@@ -1,0 +1,109 @@
+# BoxRecon Configuration File
+# Customize BoxRecon behavior and settings
+# 
+# BoxRecon - Created by hckerhub
+# Website: https://hackerhub.me
+# GitHub: https://github.com/hckerhub
+# Support: https://buymeacoffee.com/hckerhub
+
+[general]
+# Default timeout for scans in seconds (300 = 5 minutes)
+scan_timeout = 300
+
+# Number of threads for multi-threaded tools
+default_threads = 50
+
+# Output format preferences
+colorize_output = true
+verbose_logging = true
+
+[wordlists]
+# Wordlist directories and files
+# HTB machines typically use smaller, focused wordlists
+base_dir = "/usr/share/wordlists"
+
+# Primary wordlists (smaller, HTB-focused)
+common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
+small = "/usr/share/wordlists/dirb/common.txt"
+
+# Backup/alternative wordlists
+medium = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
+big = "/usr/share/wordlists/dirb/big.txt"
+
+# Custom wordlists (add your own)
+custom = "/usr/share/wordlists/custom/htb-common.txt"
+
+[nmap]
+# Nmap scan configurations
+quick_ports = "1000"  # Top N ports for quick scan
+udp_ports = "200"     # Top N UDP ports for UDP scan
+timing = "T4"         # Timing template (T0-T5)
+version_intensity = "5"  # Version detection intensity (0-9)
+
+# Additional Nmap options
+enable_os_detection = true
+enable_version_detection = true
+enable_script_scan = true
+enable_udp_scan = true
+
+[gobuster]
+# Gobuster configurations
+extensions = "php,html,txt,js,css,zip,tar,gz,bak,old"
+threads = 50
+timeout = "10s"
+follow_redirects = false
+include_length = true
+
+# Status codes to include
+status_codes = "200,204,301,302,307,401,403"
+
+[feroxbuster]
+# Feroxbuster configurations (alternative to gobuster)
+extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"
+threads = 50
+timeout = 10
+depth = 4
+wordlist_size = "small"  # small, medium, large
+
+[theharvester]
+# theHarvester configurations
+data_source = "google,bing,yahoo,duckduckgo"
+limit = 500
+timeout = 300
+
+[dnsrecon]
+# DNSrecon configurations
+record_types = "A,AAAA,CNAME,MX,NS,PTR,SOA,SRV,TXT"
+threads = 10
+timeout = 300
+
+[ffuf]
+# ffuf configurations
+extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"
+threads = 40
+timeout = 10
+match_codes = "200,204,301,302,307,401,403"
+filter_size = ""  # Filter by response size (optional)
+
+[nikto]
+# Nikto scanner settings
+format = "txt"
+timeout = 300
+max_scan_time = 300
+
+[whatweb]
+# WhatWeb settings
+verbosity = "verbose"
+aggression = 1  # 1=stealthy, 3=aggressive
+
+[output]
+# Output formatting options
+max_line_length = 120
+truncate_long_lines = true
+highlight_important = true
+include_timestamps = true
+
+# Summary report settings
+include_command_details = true
+include_execution_time = true
+include_file_sizes = true 

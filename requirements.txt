@@ -1,0 +1,28 @@
+# BoxRecon Requirements
+# Python 3.8+ required
+
+# Core dependencies (built-in modules used)
+# - os
+# - sys  
+# - subprocess
+# - argparse
+# - ipaddress
+# - json
+# - datetime
+# - pathlib
+# - typing
+# - threading
+# - time
+
+# External tools required (install separately):
+# - nmap
+# - gobuster  
+# - nikto
+# - whatweb
+
+# Optional dependencies (BoxRecon includes fallbacks)
+toml>=0.10.2     # TOML configuration file support (optional - built-in parser available)
+
+# Optional enhancements
+colorama>=0.4.6  # Better cross-platform color support
+rich>=13.0.0     # Enhanced terminal formatting (optional upgrade) 
