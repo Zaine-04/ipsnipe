@@ -131,7 +131,8 @@ class BoxRecon:
                 'version_intensity': '5',
                 'enable_os_detection': True,
                 'enable_version_detection': True,
-                'enable_script_scan': True
+                'enable_script_scan': True,
+                'udp_ports': 200
             },
             'gobuster': {
                 'extensions': 'php,html,txt,js,css,zip,tar,gz,bak,old',
@@ -141,6 +142,20 @@ class BoxRecon:
                 'include_length': True,
                 'status_codes': '200,204,301,302,307,401,403'
             },
+            'feroxbuster': {
+                'extensions': 'php,html,txt,js,css,zip,tar,gz,bak,old',
+                'threads': 50,
+                'timeout': 10,
+                'depth': 2,
+                'wordlist_size': 'common'
+            },
+            'ffuf': {
+                'extensions': '.php,.html,.txt,.js,.css,.zip,.tar,.gz,.bak,.old',
+                'threads': 50,
+                'timeout': 10,
+                'match_codes': '200,204,301,302,307,401,403',
+                'filter_size': ''
+            },
             'nikto': {
                 'format': 'txt',
                 'timeout': 300,
@@ -149,6 +164,14 @@ class BoxRecon:
             'whatweb': {
                 'verbosity': 'verbose',
                 'aggression': 1
+            },
+            'theharvester': {
+                'data_source': 'all',
+                'limit': 100
+            },
+            'dnsrecon': {
+                'record_types': 'std',
+                'threads': 10
             },
             'output': {
                 'max_line_length': 120,
@@ -695,11 +718,17 @@ class BoxRecon:
         
         # Fallback to first discovered web port
         if self.web_ports:
-            port = self.web_ports[0]
+            # Sort web ports to prioritize standard ports
+            sorted_ports = sorted(self.web_ports, key=lambda p: (
+                p not in [80, 443, 8080, 8443],  # Standard ports first
+                p  # Then by port number
+            ))
+            port = sorted_ports[0]
             protocol = 'https' if port in [443, 8443] else 'http'
             return port, protocol
         
-        # Last resort
+        # Last resort - use port 80
+        print(f"{Colors.YELLOW}⚠️  No web ports detected, defaulting to port 80{Colors.END}")
         return 80, 'http'
     
     def get_target_ip(self) -> str:
@@ -1021,11 +1050,18 @@ class BoxRecon:
             '--no-error'
         ]
         
+        # Add SSL options if using HTTPS
+        if protocol == 'https' or target_port in [443, 8443]:
+            command.append('-k')  # Skip SSL certificate verification
+        
         # Length is shown by default in gobuster dir mode
         # Removed the incorrect -l flag that was causing errors
         
         if gobuster_config['status_codes']:
             command.extend(['-s', gobuster_config['status_codes'], '-b', ''])  # Clear default blacklist
+        
+        # Add quiet mode
+        command.append('-q')
         
         description = f'Gobuster Common Wordlist ({protocol.upper()} Port {target_port})'
         if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
@@ -1041,9 +1077,8 @@ class BoxRecon:
         gobuster_config = self.config['gobuster']
         wordlist = self.get_wordlist_path('big')
         
-        # Use discovered web ports or default to port 80
-        target_port = self.web_ports[0] if self.web_ports else 80
-        protocol = 'https' if target_port in [443, 8443] else 'http'
+        # Use the best available web port
+        target_port, protocol = self.get_best_web_port()
         
         command = [
             'gobuster', 'dir',
@@ -1055,13 +1090,24 @@ class BoxRecon:
             '--no-error'
         ]
         
+        # Add SSL options if using HTTPS
+        if protocol == 'https' or target_port in [443, 8443]:
+            command.append('-k')  # Skip SSL certificate verification
+        
         # Length is shown by default in gobuster dir mode
         # Removed the incorrect -l flag that was causing errors
         
         if gobuster_config['status_codes']:
             command.extend(['-s', gobuster_config['status_codes'], '-b', ''])  # Clear default blacklist
         
-        return self.run_command(command, 'gobuster_big.txt', f'Gobuster Big Wordlist (Port {target_port})', 'gobuster')
+        # Add quiet mode
+        command.append('-q')
+        
+        description = f'Gobuster Big Wordlist ({protocol.upper()} Port {target_port})'
+        if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
+            description += ' [Priority Target]'
+        
+        return self.run_command(command, 'gobuster_big.txt', description, 'gobuster')
     
     def feroxbuster_scan(self) -> Dict:
         """Run Feroxbuster directory enumeration"""
@@ -1086,6 +1132,10 @@ class BoxRecon:
             '-q'  # Quiet mode for cleaner output
         ]
         
+        # Add SSL options if using HTTPS
+        if protocol == 'https' or target_port in [443, 8443]:
+            command.append('-k')  # Skip SSL certificate verification
+        
         description = f'Feroxbuster Directory Enumeration ({protocol.upper()} Port {target_port})'
         if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
             description += ' [Priority Target]'
@@ -1100,9 +1150,8 @@ class BoxRecon:
         ffuf_config = self.config['ffuf']
         wordlist = self.get_wordlist_path('common')
         
-        # Use discovered web ports or default to port 80
-        target_port = self.web_ports[0] if self.web_ports else 80
-        protocol = 'https' if target_port in [443, 8443] else 'http'
+        # Use the best available web port
+        target_port, protocol = self.get_best_web_port()
         
         command = [
             'ffuf',
@@ -1119,7 +1168,15 @@ class BoxRecon:
         if ffuf_config['filter_size']:
             command.extend(['-fs', ffuf_config['filter_size']])
         
-        return self.run_command(command, 'ffuf.txt', f'ffuf Web Fuzzer (Port {target_port})', 'ffuf')
+        # Ignore SSL certificate errors if using HTTPS
+        if protocol == 'https' or target_port in [443, 8443]:
+            command.append('-ic')  # Ignore certificate errors
+        
+        description = f'ffuf Web Fuzzer ({protocol.upper()} Port {target_port})'
+        if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
+            description += ' [Priority Target]'
+        
+        return self.run_command(command, 'ffuf.txt', description, 'ffuf')
     
     def nikto_scan(self) -> Dict:
         """Run Nikto web scanner using configuration"""
@@ -1134,12 +1191,13 @@ class BoxRecon:
         command = [
             'nikto',
             '-h', f'{self.target_ip}:{target_port}',
-            '-maxtime', str(nikto_config['max_scan_time'])
+            '-maxtime', str(nikto_config['max_scan_time']),
+            '-nointeractive'  # Prevent any prompts
         ]
         
         # Add SSL flag if using HTTPS
-        if protocol == 'https':
-            command.append('-ssl')
+        if protocol == 'https' or target_port in [443, 8443]:
+            command.extend(['-ssl', '+'])
         
         description = f'Nikto Web Scanner ({protocol.upper()} Port {target_port})'
         if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
@@ -1154,9 +1212,8 @@ class BoxRecon:
         
         whatweb_config = self.config['whatweb']
         
-        # Use discovered web ports or default to port 80
-        target_port = self.web_ports[0] if self.web_ports else 80
-        protocol = 'https' if target_port in [443, 8443] else 'http'
+        # Use the best available web port
+        target_port, protocol = self.get_best_web_port()
         
         command = [
             'whatweb',
@@ -1164,9 +1221,19 @@ class BoxRecon:
             f'-a{whatweb_config["aggression"]}',
             f'{protocol}://{self.target_ip}:{target_port}'
         ]
+        
+        # Add SSL options if using HTTPS
+        if protocol == 'https' or target_port in [443, 8443]:
+            command.append('--no-check-certificate')  # Skip SSL certificate verification
+        
         # Remove empty strings from command
         command = [arg for arg in command if arg]
-        return self.run_command(command, 'whatweb.txt', f'WhatWeb Technology Detection (Port {target_port})', 'whatweb')
+        
+        description = f'WhatWeb Technology Detection ({protocol.upper()} Port {target_port})'
+        if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
+            description += ' [Priority Target]'
+        
+        return self.run_command(command, 'whatweb.txt', description, 'whatweb')
     
     def theharvester_scan(self) -> Dict:
         """Run theHarvester for email and subdomain gathering"""
