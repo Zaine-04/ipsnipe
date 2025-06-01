@@ -84,29 +84,29 @@ verbose_logging = true
 # 🎯 CTF Strategy: Start with small wordlists for speed, use big ones if you're stuck
 # 💡 Pro Tip: HTB machines usually have obvious directories, so small wordlists work well
 
-# 📁 Base directory where wordlists are stored (LOCAL BOXRECON WORDLISTS)
+# 📁 Base directory where wordlists are stored (STANDARD HTB/KALI LOCATION)
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: base_dir = "wordlists"                                       │
+# │ MODIFY THIS PATH: base_dir = "/usr/share/wordlists"                             │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-base_dir = "wordlists"
+base_dir = "/usr/share/wordlists"
 
 # 🏃‍♂️ FAST WORDLISTS (Recommended for beginners - STANDARD HTB LOCATIONS)
 # Small, focused wordlists that finish quickly
 # Perfect for initial reconnaissance and most CTF machines
 
 # Common directories/files (FASTEST - use this first!)
-# Local BoxRecon wordlist - Contains common names like admin, login, config
+# Standard HTB/Kali wordlist - Contains thousands of common names for comprehensive coverage
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: common = "wordlists/dirbuster/directory-list-2.3-small.txt"  │
+# │ MODIFY THIS PATH: common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-common = "wordlists/dirbuster/directory-list-2.3-small.txt"
+common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
 
 # Small but comprehensive list (FAST)
-# Local BoxRecon wordlist - Contains basic directories found on most web servers
+# Standard HTB/Kali wordlist - Contains basic directories found on most web servers
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: small = "wordlists/dirb/common.txt"                          │
+# │ MODIFY THIS PATH: small = "/usr/share/wordlists/dirb/common.txt"                │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-small = "wordlists/dirb/common.txt"
+small = "/usr/share/wordlists/dirb/common.txt"
 
 # 🐌 COMPREHENSIVE WORDLISTS (Use if fast ones don't find anything - STANDARD HTB LOCATIONS)
 # Larger wordlists that take longer but find more obscure directories

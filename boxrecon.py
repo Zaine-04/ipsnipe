@@ -123,7 +123,7 @@ class BoxRecon:
                 'small': '/usr/share/wordlists/dirb/common.txt',
                 'medium': '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt',
                 'big': '/usr/share/wordlists/dirb/big.txt',
-                'custom': '/usr/share/wordlists/custom/htb-common.txt'
+                'custom': '/usr/share/seclists/Discovery/Web-Content/common.txt'
             },
             'nmap': {
                 'quick_ports': '1000',

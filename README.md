@@ -33,6 +33,15 @@ A user-friendly command-line interface tool designed to facilitate reconnaissanc
 - **🎭 Demo Mode** - Test the interface without running actual scans
 - **⚖️ Ethical Use Disclaimer** - Built-in legal and ethical use agreement
 
+## 🆕 What's New in v2.0.0
+
+- **🔐 Enhanced Mode (Sudo Support):** Automatic privilege detection, SYN scans, OS/UDP detection, and smart fallback to standard mode.
+- **🌐 Smart Web Port Prioritization:** Tests web ports for real content, auto-selects the most promising for scanning, and skips dead ports.
+- **🧠 Improved Logic:** Dynamic scan adaptation based on privileges, better error handling, and clear user feedback.
+- **📊 Enhanced Reporting:** Summary reports now include privilege level, port discovery, and prioritized targets.
+- **🎮 New CLI Options:** `--enhanced` and `--standard` flags for mode selection, plus improved versioning.
+- **🗂️ Standard Wordlists Restored:** Uses full HTB/Kali wordlists for comprehensive coverage (no more tiny debug lists).
+
 ## 🛠️ Supported Tools
 
 | Tool | Purpose | Description |
