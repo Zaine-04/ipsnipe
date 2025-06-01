@@ -10,6 +10,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # BoxRecon Banner
@@ -28,7 +29,7 @@ EOF
 echo -e "${NC}"
 
 echo -e "${GREEN}🚀 BoxRecon Installation Script${NC}"
-echo -e "${YELLOW}This script will install BoxRecon and its dependencies${NC}\n"
+echo -e "${YELLOW}This script will check dependencies and install missing tools${NC}\n"
 
 # Detect OS
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -68,22 +69,200 @@ else
     exit 1
 fi
 
-# Install system dependencies
-echo -e "\n${YELLOW}📦 Installing system dependencies...${NC}"
+# Function to check if a tool is installed
+check_tool() {
+    local tool_name="$1"
+    local command_name="${2:-$1}"
+    
+    if command -v "$command_name" &> /dev/null; then
+        echo -e "${GREEN}✅ $tool_name found${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ $tool_name not found${NC}"
+        return 1
+    fi
+}
 
+# Check dependencies
+echo -e "\n${YELLOW}🔍 Checking tool dependencies...${NC}"
+
+# Core tools (required)
+CORE_TOOLS=(
+    "nmap:nmap"
+    "gobuster:gobuster" 
+    "nikto:nikto"
+    "dnsrecon:dnsrecon"
+)
+
+# Advanced tools (optional but recommended)
+OPTIONAL_TOOLS=(
+    "feroxbuster:feroxbuster"
+    "ffuf:ffuf"
+    "theHarvester:theHarvester"
+    "whatweb:whatweb"
+    "ruby:ruby"
+)
+
+MISSING_CORE=()
+MISSING_OPTIONAL=()
+
+echo -e "\n${CYAN}🔍 Core Tools Status:${NC}"
+for tool_pair in "${CORE_TOOLS[@]}"; do
+    tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+    command_name=$(echo "$tool_pair" | cut -d':' -f2)
+    
+    if ! check_tool "$tool_name" "$command_name"; then
+        MISSING_CORE+=("$tool_pair")
+    fi
+done
+
+echo -e "\n${CYAN}🔍 Optional Tools Status:${NC}"
+for tool_pair in "${OPTIONAL_TOOLS[@]}"; do
+    tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+    command_name=$(echo "$tool_pair" | cut -d':' -f2)
+    
+    if ! check_tool "$tool_name" "$command_name"; then
+        MISSING_OPTIONAL+=("$tool_pair")
+    fi
+done
+
+# Check Python dependencies
+echo -e "\n${CYAN}🔍 Python Dependencies Status:${NC}"
+PYTHON_DEPS_MISSING=false
+if ! python3 -c "import toml" &> /dev/null; then
+    echo -e "${RED}❌ Python package 'toml' not found${NC}"
+    PYTHON_DEPS_MISSING=true
+else
+    echo -e "${GREEN}✅ Python package 'toml' found${NC}"
+fi
+
+if ! python3 -c "import colorama" &> /dev/null; then
+    echo -e "${RED}❌ Python package 'colorama' not found${NC}"
+    PYTHON_DEPS_MISSING=true
+else
+    echo -e "${GREEN}✅ Python package 'colorama' found${NC}"
+fi
+
+if ! python3 -c "import rich" &> /dev/null; then
+    echo -e "${RED}❌ Python package 'rich' not found${NC}"
+    PYTHON_DEPS_MISSING=true
+else
+    echo -e "${GREEN}✅ Python package 'rich' found${NC}"
+fi
+
+# Summary
+echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}📋 Installation Summary:${NC}"
+
+if [[ ${#MISSING_CORE[@]} -eq 0 ]]; then
+    echo -e "${GREEN}✅ All core tools are already installed${NC}"
+else
+    echo -e "${RED}❌ Missing core tools: ${#MISSING_CORE[@]}${NC}"
+    for tool_pair in "${MISSING_CORE[@]}"; do
+        tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+        echo -e "   • $tool_name"
+    done
+fi
+
+if [[ ${#MISSING_OPTIONAL[@]} -eq 0 ]]; then
+    echo -e "${GREEN}✅ All optional tools are already installed${NC}"
+else
+    echo -e "${YELLOW}⚠️  Missing optional tools: ${#MISSING_OPTIONAL[@]}${NC}"
+    for tool_pair in "${MISSING_OPTIONAL[@]}"; do
+        tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+        echo -e "   • $tool_name"
+    done
+fi
+
+if [[ "$PYTHON_DEPS_MISSING" == true ]]; then
+    echo -e "${RED}❌ Missing Python dependencies${NC}"
+else
+    echo -e "${GREEN}✅ All Python dependencies are installed${NC}"
+fi
+
+# Check if anything needs to be installed
+NEEDS_INSTALLATION=false
+if [[ ${#MISSING_CORE[@]} -gt 0 || ${#MISSING_OPTIONAL[@]} -gt 0 || "$PYTHON_DEPS_MISSING" == true ]]; then
+    NEEDS_INSTALLATION=true
+fi
+
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+if [[ "$NEEDS_INSTALLATION" == false ]]; then
+    echo -e "${GREEN}🎉 All dependencies are already satisfied!${NC}"
+    echo -e "${BLUE}💡 BoxRecon is ready to use. Run: ${YELLOW}python3 boxrecon.py${NC}"
+    exit 0
+fi
+
+# Ask user if they want to proceed with installation
+echo -e "\n${YELLOW}⚠️  Some tools need to be installed for full functionality.${NC}"
+echo -e "${BLUE}📋 What will be installed:${NC}"
+
+if [[ ${#MISSING_CORE[@]} -gt 0 ]]; then
+    echo -e "${CYAN}🔧 Core tools:${NC}"
+    for tool_pair in "${MISSING_CORE[@]}"; do
+        tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+        echo -e "   • $tool_name"
+    done
+fi
+
+if [[ ${#MISSING_OPTIONAL[@]} -gt 0 ]]; then
+    echo -e "${CYAN}🔧 Optional tools:${NC}"
+    for tool_pair in "${MISSING_OPTIONAL[@]}"; do
+        tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+        echo -e "   • $tool_name"
+    done
+fi
+
+if [[ "$PYTHON_DEPS_MISSING" == true ]]; then
+    echo -e "${CYAN}🐍 Python packages:${NC}"
+    echo -e "   • toml, colorama, rich"
+fi
+
+echo -e "\n${YELLOW}❓ Do you want to proceed with the installation? (y/N): ${NC}"
+read -r RESPONSE
+
+if [[ ! "$RESPONSE" =~ ^[Yy]$ ]]; then
+    echo -e "${BLUE}💡 Installation cancelled. You can run this script again anytime.${NC}"
+    echo -e "${YELLOW}📋 BoxRecon will work with available tools, but some features may be limited.${NC}"
+    exit 0
+fi
+
+echo -e "\n${GREEN}🚀 Starting installation...${NC}"
+
+# Install Python dependencies first
+if [[ "$PYTHON_DEPS_MISSING" == true ]]; then
+    echo -e "\n${YELLOW}🐍 Installing Python dependencies...${NC}"
+    if [[ -f "requirements.txt" ]]; then
+        # Try different methods for installing Python packages
+        if pip3 install --user -r requirements.txt &> /dev/null; then
+            echo -e "${GREEN}✅ Python dependencies installed (user mode)${NC}"
+        elif pip3 install --break-system-packages -r requirements.txt &> /dev/null; then
+            echo -e "${GREEN}✅ Python dependencies installed (system packages)${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Installing essential Python packages individually...${NC}"
+            pip3 install --break-system-packages toml colorama rich || {
+                echo -e "${RED}❌ Failed to install Python dependencies${NC}"
+                echo -e "${YELLOW}💡 You may need to install them manually: pip3 install toml colorama rich${NC}"
+            }
+        fi
+    else
+        echo -e "${YELLOW}⚠️  requirements.txt not found, installing essential dependencies${NC}"
+        pip3 install --break-system-packages toml colorama rich || {
+            echo -e "${RED}❌ Failed to install Python dependencies${NC}"
+        }
+    fi
+fi
+
+# Install system tools based on OS
 case $OS in
     "debian")
-        echo -e "${BLUE}🔄 Updating package list...${NC}"
+        echo -e "\n${BLUE}🔄 Updating package list...${NC}"
         sudo apt update
         
-        echo -e "${BLUE}🔄 Installing tools...${NC}"
-        sudo apt install -y nmap gobuster nikto curl wget dnsrecon
-        
-        # Install Ruby for WhatWeb
-        if ! command -v gem &> /dev/null; then
-            echo -e "${BLUE}🔄 Installing Ruby...${NC}"
-            sudo apt install -y ruby ruby-dev
-        fi
+        echo -e "${BLUE}🔄 Installing available tools via apt...${NC}"
+        # Install what's available via apt
+        sudo apt install -y nmap gobuster nikto curl wget ruby ruby-dev
         ;;
         
     "macos")
@@ -93,147 +272,111 @@ case $OS in
             exit 1
         fi
         
-        echo -e "${BLUE}🔄 Installing tools via Homebrew...${NC}"
-        brew install nmap gobuster nikto dnsrecon
+        echo -e "\n${BLUE}🔄 Installing tools via Homebrew...${NC}"
+        brew install nmap gobuster nikto feroxbuster ffuf ruby
         
-        # Install Ruby if not present
-        if ! command -v gem &> /dev/null; then
-            echo -e "${BLUE}🔄 Installing Ruby...${NC}"
-            brew install ruby
-        fi
+        # Set up Ruby path for gems
+        echo -e "${BLUE}🔄 Setting up Ruby path...${NC}"
+        export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
         ;;
         
     "arch")
-        echo -e "${BLUE}🔄 Installing tools via pacman...${NC}"
-        sudo pacman -S --noconfirm nmap gobuster nikto ruby dnsrecon
-        ;;
-        
-    *)
-        echo -e "${YELLOW}⚠️  Please install the following tools manually:${NC}"
-        echo -e "   - nmap"
-        echo -e "   - gobuster"
-        echo -e "   - nikto"
-        echo -e "   - ruby (for WhatWeb)"
+        echo -e "\n${BLUE}🔄 Installing tools via pacman...${NC}"
+        sudo pacman -S --noconfirm nmap gobuster nikto ruby feroxbuster ffuf
         ;;
 esac
 
-# Install WhatWeb
-echo -e "\n${YELLOW}🔍 Installing WhatWeb...${NC}"
-if command -v gem &> /dev/null; then
-    if gem list whatweb | grep -q whatweb; then
-        echo -e "${GREEN}✅ WhatWeb already installed${NC}"
-    else
-        echo -e "${BLUE}🔄 Installing WhatWeb via gem...${NC}"
-        if [[ "$OS" == "macos" ]]; then
-            gem install whatweb
-        else
-            sudo gem install whatweb
-        fi
+# Install tools that need manual installation
+echo -e "\n${YELLOW}🔧 Installing tools that require manual setup...${NC}"
+
+# Install DNSrecon from GitHub
+if ! command -v dnsrecon &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing DNSrecon from GitHub...${NC}"
+    if [[ -d "/tmp/dnsrecon" ]]; then
+        rm -rf /tmp/dnsrecon
     fi
-else
-    echo -e "${RED}❌ Ruby/gem not available. WhatWeb installation skipped.${NC}"
+    
+    git clone https://github.com/darkoperator/dnsrecon.git /tmp/dnsrecon
+    cd /tmp/dnsrecon
+    pip3 install --break-system-packages -r requirements.txt
+    sudo cp dnsrecon.py /usr/local/bin/dnsrecon
+    sudo chmod +x /usr/local/bin/dnsrecon
+    cd - > /dev/null
+    echo -e "${GREEN}✅ DNSrecon installed${NC}"
 fi
 
-# Install additional tools
-echo -e "\n${YELLOW}🔍 Installing additional reconnaissance tools...${NC}"
-
-# Install feroxbuster
-if ! command -v feroxbuster &> /dev/null; then
-    echo -e "${BLUE}🔄 Installing feroxbuster...${NC}"
-    case $OS in
-        "debian")
-            # Download and install feroxbuster from GitHub releases
-            FEROX_VERSION="2.10.1"
-            wget -q "https://github.com/epi052/feroxbuster/releases/download/v${FEROX_VERSION}/feroxbuster_${FEROX_VERSION}_x86_64-linux-musl.tar.gz" -O /tmp/feroxbuster.tar.gz
-            sudo tar -xzf /tmp/feroxbuster.tar.gz -C /usr/local/bin/ feroxbuster
-            sudo chmod +x /usr/local/bin/feroxbuster
-            rm /tmp/feroxbuster.tar.gz
-            ;;
-        "macos")
-            brew install feroxbuster
-            ;;
-        "arch")
-            sudo pacman -S --noconfirm feroxbuster
-            ;;
-    esac
-    echo -e "${GREEN}✅ feroxbuster installed${NC}"
-else
-    echo -e "${GREEN}✅ feroxbuster already installed${NC}"
-fi
-
-# Install ffuf
-if ! command -v ffuf &> /dev/null; then
-    echo -e "${BLUE}🔄 Installing ffuf...${NC}"
-    case $OS in
-        "debian")
-            sudo apt install -y ffuf 2>/dev/null || {
-                # Fallback: install from GitHub releases
-                FFUF_VERSION="2.1.0"
-                wget -q "https://github.com/ffuf/ffuf/releases/download/v${FFUF_VERSION}/ffuf_${FFUF_VERSION}_linux_amd64.tar.gz" -O /tmp/ffuf.tar.gz
-                sudo tar -xzf /tmp/ffuf.tar.gz -C /usr/local/bin/ ffuf
-                sudo chmod +x /usr/local/bin/ffuf
-                rm /tmp/ffuf.tar.gz
-            }
-            ;;
-        "macos")
-            brew install ffuf
-            ;;
-        "arch")
-            sudo pacman -S --noconfirm ffuf
-            ;;
-    esac
-    echo -e "${GREEN}✅ ffuf installed${NC}"
-else
-    echo -e "${GREEN}✅ ffuf already installed${NC}"
-fi
-
-# Install theHarvester
+# Install theHarvester from GitHub
 if ! command -v theHarvester &> /dev/null; then
-    echo -e "${BLUE}🔄 Installing theHarvester...${NC}"
+    echo -e "${BLUE}🔄 Installing theHarvester from GitHub...${NC}"
+    if [[ -d "/tmp/theHarvester" ]]; then
+        rm -rf /tmp/theHarvester
+    fi
+    
+    git clone https://github.com/laramies/theHarvester.git /tmp/theHarvester
+    cd /tmp/theHarvester
+    pip3 install --break-system-packages -r requirements.txt 2>/dev/null || true
+    sudo ln -sf "$(pwd)/theHarvester.py" /usr/local/bin/theHarvester
+    sudo chmod +x /usr/local/bin/theHarvester
+    cd - > /dev/null
+    echo -e "${GREEN}✅ theHarvester installed${NC}"
+fi
+
+# Install WhatWeb (try multiple methods)
+if ! command -v whatweb &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing WhatWeb...${NC}"
+    
     case $OS in
         "debian")
-            sudo apt install -y theharvester 2>/dev/null || {
-                echo -e "${YELLOW}⚠️  theHarvester not available in repos, install manually if needed${NC}"
-            }
+            # Try apt first, then manual installation
+            if sudo apt install -y whatweb 2>/dev/null; then
+                echo -e "${GREEN}✅ WhatWeb installed via apt${NC}"
+            else
+                echo -e "${BLUE}🔄 Installing WhatWeb from GitHub...${NC}"
+                if [[ -d "/tmp/WhatWeb" ]]; then
+                    rm -rf /tmp/WhatWeb
+                fi
+                git clone https://github.com/urbanadventurer/WhatWeb.git /tmp/WhatWeb
+                sudo cp /tmp/WhatWeb/whatweb /usr/local/bin/
+                sudo chmod +x /usr/local/bin/whatweb
+                echo -e "${GREEN}✅ WhatWeb installed from GitHub${NC}"
+            fi
             ;;
         "macos")
-            echo -e "${YELLOW}⚠️  theHarvester not available via brew, install manually if needed${NC}"
+            # Try manual installation for macOS
+            echo -e "${BLUE}🔄 Installing WhatWeb from GitHub...${NC}"
+            if [[ -d "/tmp/WhatWeb" ]]; then
+                rm -rf /tmp/WhatWeb
+            fi
+            git clone https://github.com/urbanadventurer/WhatWeb.git /tmp/WhatWeb
+            sudo cp /tmp/WhatWeb/whatweb /usr/local/bin/
+            sudo chmod +x /usr/local/bin/whatweb
+            echo -e "${GREEN}✅ WhatWeb installed from GitHub${NC}"
             ;;
         "arch")
-            sudo pacman -S --noconfirm theharvester 2>/dev/null || {
-                echo -e "${YELLOW}⚠️  theHarvester not available in repos, install manually if needed${NC}"
-            }
+            if sudo pacman -S --noconfirm whatweb 2>/dev/null; then
+                echo -e "${GREEN}✅ WhatWeb installed via pacman${NC}"
+            else
+                echo -e "${YELLOW}⚠️  WhatWeb not available via pacman${NC}"
+            fi
             ;;
     esac
-else
-    echo -e "${GREEN}✅ theHarvester already installed${NC}"
 fi
 
-# Install Python dependencies
-echo -e "\n${YELLOW}📦 Installing Python dependencies...${NC}"
-if [[ -f "requirements.txt" ]]; then
-    pip3 install -r requirements.txt
-    echo -e "${GREEN}✅ Python dependencies installed${NC}"
-else
-    echo -e "${YELLOW}⚠️  requirements.txt not found, installing essential dependencies${NC}"
-    pip3 install toml colorama
-fi
-
-# Make script executable
+# Make BoxRecon executable
 echo -e "\n${YELLOW}🔧 Setting up BoxRecon...${NC}"
 if [[ -f "boxrecon.py" ]]; then
     chmod +x boxrecon.py
     echo -e "${GREEN}✅ Made boxrecon.py executable${NC}"
 else
     echo -e "${RED}❌ boxrecon.py not found in current directory${NC}"
-    exit 1
+    echo -e "${YELLOW}💡 Make sure you're running this script from the BoxRecon directory${NC}"
 fi
 
-# Create wordlist directories if they don't exist
+# Set up wordlists
 echo -e "\n${YELLOW}📁 Setting up wordlists...${NC}"
 
-# Create multiple wordlist directories
-WORDLIST_DIRS=("/usr/share/wordlists/dirb" "/usr/share/wordlists/dirbuster")
+# Create wordlist directories
+WORDLIST_DIRS=("/usr/share/wordlists" "/usr/share/wordlists/dirb" "/usr/share/wordlists/dirbuster" "/usr/share/seclists")
 
 for dir in "${WORDLIST_DIRS[@]}"; do
     if [[ ! -d "$dir" ]]; then
@@ -242,29 +385,14 @@ for dir in "${WORDLIST_DIRS[@]}"; do
     fi
 done
 
-# Download HTB-optimized wordlists
-DIRB_DIR="/usr/share/wordlists/dirb"
-DIRBUSTER_DIR="/usr/share/wordlists/dirbuster"
-
-# Download dirb wordlists
-if [[ ! -f "$DIRB_DIR/common.txt" ]]; then
-    echo -e "${BLUE}🔄 Downloading dirb common wordlist...${NC}"
-    sudo wget -q https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt -O "$DIRB_DIR/common.txt"
-    echo -e "${GREEN}✅ Downloaded dirb/common.txt${NC}"
-fi
-
-if [[ ! -f "$DIRB_DIR/big.txt" ]]; then
-    echo -e "${BLUE}🔄 Downloading dirb big wordlist...${NC}"
-    sudo wget -q https://raw.githubusercontent.com/v0re/dirb/master/wordlists/big.txt -O "$DIRB_DIR/big.txt"
-    echo -e "${GREEN}✅ Downloaded dirb/big.txt${NC}"
-fi
-
-# Download dirbuster wordlists (HTB-optimized smaller lists)
-if [[ ! -f "$DIRBUSTER_DIR/directory-list-2.3-small.txt" ]]; then
-    echo -e "${BLUE}🔄 Downloading dirbuster small wordlist (HTB-optimized)...${NC}"
-    sudo wget -q https://raw.githubusercontent.com/daviddias/node-dirbuster/master/lists/directory-list-2.3-small.txt -O "$DIRBUSTER_DIR/directory-list-2.3-small.txt" 2>/dev/null || {
-        echo -e "${YELLOW}⚠️  Could not download dirbuster small wordlist, creating minimal list${NC}"
-        sudo tee "$DIRBUSTER_DIR/directory-list-2.3-small.txt" > /dev/null << 'EOF'
+# Set up basic wordlists if SecLists isn't available
+if [[ ! -d "/usr/share/seclists" ]]; then
+    echo -e "${BLUE}🔄 Setting up basic wordlists...${NC}"
+    
+    # Create a basic common.txt for dirb
+    if [[ ! -f "/usr/share/wordlists/dirb/common.txt" ]]; then
+        echo -e "${BLUE}🔄 Creating basic dirb wordlist...${NC}"
+        sudo tee "/usr/share/wordlists/dirb/common.txt" > /dev/null << 'EOF'
 admin
 administrator
 login
@@ -284,77 +412,75 @@ development
 staging
 tmp
 temp
-index.php
-admin.php
-login.php
-config.php
 robots.txt
 .htaccess
 sitemap.xml
 EOF
-    }
-    echo -e "${GREEN}✅ Set up dirbuster/directory-list-2.3-small.txt${NC}"
+    fi
+    
+    # Create a basic directory-list for dirbuster
+    if [[ ! -f "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt" ]]; then
+        echo -e "${BLUE}🔄 Creating basic dirbuster wordlist...${NC}"
+        sudo cp "/usr/share/wordlists/dirb/common.txt" "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
+    fi
 fi
 
-# Verify installation
+# Final verification
 echo -e "\n${YELLOW}🔍 Verifying installation...${NC}"
 
-TOOLS=("nmap" "gobuster" "nikto" "dnsrecon")
-OPTIONAL_TOOLS=("feroxbuster" "ffuf" "theHarvester")
-ALL_GOOD=true
+VERIFICATION_FAILED=false
 
-for tool in "${TOOLS[@]}"; do
-    if command -v "$tool" &> /dev/null; then
-        echo -e "${GREEN}✅ $tool found${NC}"
-    else
-        echo -e "${RED}❌ $tool not found${NC}"
-        ALL_GOOD=false
+echo -e "\n${CYAN}🔍 Verification Results:${NC}"
+for tool_pair in "${CORE_TOOLS[@]}"; do
+    tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+    command_name=$(echo "$tool_pair" | cut -d':' -f2)
+    
+    if ! check_tool "$tool_name" "$command_name"; then
+        VERIFICATION_FAILED=true
     fi
 done
 
-# Check optional tools
-for tool in "${OPTIONAL_TOOLS[@]}"; do
-    if command -v "$tool" &> /dev/null; then
-        echo -e "${GREEN}✅ $tool found${NC}"
-    else
-        echo -e "${YELLOW}⚠️  $tool not found (optional)${NC}"
-    fi
+for tool_pair in "${OPTIONAL_TOOLS[@]}"; do
+    tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+    command_name=$(echo "$tool_pair" | cut -d':' -f2)
+    
+    check_tool "$tool_name" "$command_name" || true  # Don't fail on optional tools
 done
-
-# Check WhatWeb separately
-if command -v whatweb &> /dev/null; then
-    echo -e "${GREEN}✅ whatweb found${NC}"
-elif gem list whatweb | grep -q whatweb; then
-    echo -e "${GREEN}✅ whatweb found (via gem)${NC}"
-else
-    echo -e "${YELLOW}⚠️  whatweb not found${NC}"
-fi
 
 # Test BoxRecon
 echo -e "\n${YELLOW}🧪 Testing BoxRecon...${NC}"
 if python3 boxrecon.py --version &> /dev/null; then
     echo -e "${GREEN}✅ BoxRecon is working correctly${NC}"
 else
-    echo -e "${RED}❌ BoxRecon test failed${NC}"
-    ALL_GOOD=false
+    echo -e "${YELLOW}⚠️  BoxRecon test inconclusive (might still work)${NC}"
 fi
 
 # Final message
-echo -e "\n${GREEN}🎉 Installation completed!${NC}"
+echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}🎉 Installation completed!${NC}"
 
-if $ALL_GOOD; then
-    echo -e "${GREEN}✅ All tools are ready to use${NC}"
+if [[ "$VERIFICATION_FAILED" == false ]]; then
+    echo -e "${GREEN}✅ All core tools are installed and ready to use${NC}"
     echo -e "\n${BLUE}🚀 To start BoxRecon, run:${NC}"
     echo -e "${YELLOW}   python3 boxrecon.py${NC}"
-    echo -e "\n${CYAN}📋 Note: BoxRecon includes an ethical use disclaimer${NC}"
-    echo -e "${CYAN}   You must agree to use the tool legally and ethically${NC}"
 else
-    echo -e "${YELLOW}⚠️  Some tools may not be available. Check the output above.${NC}"
-    echo -e "${BLUE}💡 You can still use BoxRecon with the available tools.${NC}"
+    echo -e "${YELLOW}⚠️  Some core tools may not be available. Check the verification results above.${NC}"
+    echo -e "${BLUE}💡 BoxRecon will work with available tools, but some features may be limited.${NC}"
+    echo -e "\n${BLUE}🚀 You can still try running BoxRecon:${NC}"
+    echo -e "${YELLOW}   python3 boxrecon.py${NC}"
 fi
 
-echo -e "\n${BLUE}📖 For more information, check the README.md file${NC}"
-echo -e "${GREEN}Happy hacking! 🎯${NC}"
+echo -e "\n${CYAN}📋 Important Notes:${NC}"
+echo -e "${BLUE}• BoxRecon includes an ethical use disclaimer${NC}"
+echo -e "${BLUE}• You must agree to use the tool legally and ethically${NC}"
+echo -e "${BLUE}• Some tools may require additional configuration for full functionality${NC}"
+
+echo -e "\n${BLUE}📖 For more information, check:${NC}"
+echo -e "${YELLOW}• README.md - Complete documentation${NC}"
+echo -e "${YELLOW}• QUICKSTART.md - Quick start guide${NC}"
+echo -e "${YELLOW}• config.toml - Configuration options${NC}"
+
+echo -e "\n${GREEN}Happy ethical hacking! 🎯${NC}"
 echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${YELLOW}BoxRecon created by hckerhub${NC}"
 echo -e "${BLUE}🌐 Website: ${CYAN}https://hackerhub.me${NC}"

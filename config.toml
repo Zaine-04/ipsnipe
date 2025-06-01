@@ -1,109 +1,600 @@
-# BoxRecon Configuration File
-# Customize BoxRecon behavior and settings
+# =====================================================================================
+# 🛠️  BoxRecon Configuration File - Beginner-Friendly CTF Guide
+# =====================================================================================
+# 
+# This file controls how BoxRecon behaves during reconnaissance scans.
+# All settings have been optimized for CTF environments like Hack The Box (HTB).
+# 
+# 💡 NEW TO CTFs? This guide explains what each setting does and why it matters!
+# 
+# 📚 Key Terms for Beginners:
+#   • Port Scanning: Finding open services on a target machine
+#   • Directory Enumeration: Finding hidden web directories and files  
+#   • Web Fuzzing: Testing web applications for vulnerabilities
+#   • DNS Enumeration: Finding subdomains and DNS records
+#   • Timeout: How long to wait before giving up on a scan
+#   • Threads: How many parallel connections to use (more = faster but louder)
+# 
+# 🔧 QUICK REFERENCE - Look for these boxes to find settings you can modify:
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: setting_name = value                                        │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 # 
 # BoxRecon - Created by hckerhub
-# Website: https://hackerhub.me
-# GitHub: https://github.com/hckerhub
-# Support: https://buymeacoffee.com/hckerhub
+# 🌐 Website: https://hackerhub.me
+# 💻 GitHub: https://github.com/hckerhub
+# ☕ Support: https://buymeacoffee.com/hckerhub
+# =====================================================================================
 
+# =====================================================================================
+# 🚀 GENERAL SETTINGS - Core BoxRecon Behavior
+# =====================================================================================
 [general]
-# Default timeout for scans in seconds (300 = 5 minutes)
+
+# ⏱️ Scan Timeout (in seconds)
+# How long to wait before giving up on a scan that's taking too long
+# 300 seconds = 5 minutes (perfect for most CTF machines)
+# 
+# 🎯 CTF Tip: HTB machines are designed to be solved quickly, so 5 minutes is usually enough
+# 📈 Increase this if you're scanning machines with large wordlists or slow networks
+# 📉 Decrease this if you want faster results and don't mind potentially missing things
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: scan_timeout = 300                                          │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 scan_timeout = 300
 
-# Number of threads for multi-threaded tools
+# 🔢 Default Threads
+# How many parallel connections tools will use (higher = faster but more detectable)
+# 50 is a good balance between speed and stealth for CTF environments
+# 
+# 🎯 CTF Tip: CTF machines can handle high thread counts, so 50 is fine
+# 🚨 Real-world tip: Use 10-20 threads for production systems to avoid detection
+# ⚡ Increase to 100+ for very fast scans (may overwhelm some machines)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: default_threads = 50                                        │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 default_threads = 50
 
-# Output format preferences
+# 🎨 Colorized Output
+# Makes scan results easier to read with colors and emojis
+# Set to false if your terminal doesn't support colors
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: colorize_output = true                                      │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 colorize_output = true
+
+# 📝 Verbose Logging
+# Shows detailed information about what BoxRecon is doing
+# Helpful for learning and troubleshooting
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: verbose_logging = true                                      │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 verbose_logging = true
 
+# =====================================================================================
+# 📚 WORDLISTS - Files containing common directory/file names to test
+# =====================================================================================
 [wordlists]
-# Wordlist directories and files
-# HTB machines typically use smaller, focused wordlists
-base_dir = "/usr/share/wordlists"
+# 
+# 🤔 What are wordlists?
+# Text files containing common directory and file names like:
+# admin, login, config, backup, etc.
+# BoxRecon uses these to find hidden parts of websites
+# 
+# 🎯 CTF Strategy: Start with small wordlists for speed, use big ones if you're stuck
+# 💡 Pro Tip: HTB machines usually have obvious directories, so small wordlists work well
 
-# Primary wordlists (smaller, HTB-focused)
-common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
-small = "/usr/share/wordlists/dirb/common.txt"
+# 📁 Base directory where wordlists are stored (LOCAL BOXRECON WORDLISTS)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: base_dir = "wordlists"                                       │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+base_dir = "wordlists"
 
-# Backup/alternative wordlists
+# 🏃‍♂️ FAST WORDLISTS (Recommended for beginners - STANDARD HTB LOCATIONS)
+# Small, focused wordlists that finish quickly
+# Perfect for initial reconnaissance and most CTF machines
+
+# Common directories/files (FASTEST - use this first!)
+# Local BoxRecon wordlist - Contains common names like admin, login, config
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: common = "wordlists/dirbuster/directory-list-2.3-small.txt"  │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+common = "wordlists/dirbuster/directory-list-2.3-small.txt"
+
+# Small but comprehensive list (FAST)
+# Local BoxRecon wordlist - Contains basic directories found on most web servers
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: small = "wordlists/dirb/common.txt"                          │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+small = "wordlists/dirb/common.txt"
+
+# 🐌 COMPREHENSIVE WORDLISTS (Use if fast ones don't find anything - STANDARD HTB LOCATIONS)
+# Larger wordlists that take longer but find more obscure directories
+
+# Medium wordlist (SLOWER - ~200k entries)
+# Standard Kali/HTB location - Use this if the small wordlists don't find anything interesting
+# ┌───────────────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: medium = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt" │
+# └───────────────────────────────────────────────────────────────────────────────────────────┘
 medium = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
+
+# Big wordlist (SLOWEST - ~1M entries)  
+# Standard Kali/HTB location - Last resort for when you're really stuck
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: big = "/usr/share/wordlists/dirb/big.txt"                     │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 big = "/usr/share/wordlists/dirb/big.txt"
 
-# Custom wordlists (add your own)
-custom = "/usr/share/wordlists/custom/htb-common.txt"
+# 🚀 SECLISTS (RECOMMENDED MODERN HTB WORDLISTS)
+# SecLists is now standard on modern Kali and highly recommended for HTB
+# Location: /usr/share/seclists/Discovery/Web-Content/
+# 
+# 💡 PRO TIP: These are what most HTB pros use:
+# • /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
+# • /usr/share/seclists/Discovery/Web-Content/common.txt  
+# • /usr/share/seclists/Discovery/Web-Content/big.txt
+# • /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
 
+# 🎯 Custom HTB wordlist (Create your own!)
+# You can create custom wordlists based on what you commonly find in CTFs
+# Example entries: htb, hackthebox, flag, user, admin, root, api, dev, test, etc.
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: custom = "/usr/share/wordlists/seclists/Discovery/Web-Content/common.txt" │
+# │ OR CREATE YOUR OWN: custom = "/home/user/custom-htb-wordlist.txt"               │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+custom = "/usr/share/seclists/Discovery/Web-Content/common.txt"
+
+# =====================================================================================
+# 🗺️ NMAP SETTINGS - Network Port Scanner
+# =====================================================================================
 [nmap]
-# Nmap scan configurations
-quick_ports = "1000"  # Top N ports for quick scan
-udp_ports = "200"     # Top N UDP ports for UDP scan
-timing = "T4"         # Timing template (T0-T5)
-version_intensity = "5"  # Version detection intensity (0-9)
+# 
+# 🤔 What is Nmap?
+# Nmap finds open ports (services) on target machines
+# Think of ports like doors - open doors mean running services you can potentially exploit
+# 
+# 🎯 CTF Strategy: Always start with a quick port scan, then do detailed scans on interesting ports
 
-# Additional Nmap options
-enable_os_detection = true
+# 📊 Port Scanning Options
+
+# Quick scan - how many of the most common ports to check (FAST)
+# 1000 = check the 1000 most common ports (like 22, 80, 443, etc.)
+# ⚡ Perfect for initial reconnaissance - finds most services quickly
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: quick_ports = "1000"                                        │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+quick_ports = "1000"
+
+# UDP scan - how many UDP ports to check
+# 200 = check the 200 most common UDP ports (like 53 for DNS, 161 for SNMP)
+# 🔍 UDP services are often overlooked but can provide easy wins!
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: udp_ports = "200"                                           │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+udp_ports = "200"
+
+# ⚡ Scan Speed/Stealth (T0=paranoid, T1=sneaky, T2=polite, T3=normal, T4=aggressive, T5=insane)
+# T4 = aggressive (fast and loud - perfect for CTFs)
+# 🎯 CTF Tip: Use T4 or T5 for speed since stealth doesn't matter in CTFs
+# 🚨 Real-world tip: Use T2 or T3 to avoid detection
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: timing = "T4"                                               │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+timing = "T4"
+
+# 🔍 Version Detection Intensity (0=light, 9=aggressive)
+# Higher numbers try harder to identify exact service versions
+# Version info often reveals known vulnerabilities!
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: version_intensity = "5"                                     │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+version_intensity = "5"
+
+# 🛡️ Additional Scan Options (true/false)
+
+# Try to detect the operating system (Windows, Linux, etc.)
+# Helps you know what exploits might work
+# ⚠️  REQUIRES ROOT/SUDO: Set to false if not running as root
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: enable_os_detection = false                                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+enable_os_detection = false
+
+# Try to detect exact service versions (Apache 2.4.1, SSH 7.2, etc.)
+# Version numbers often lead directly to known exploits
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: enable_version_detection = true                             │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 enable_version_detection = true
-enable_script_scan = true
-enable_udp_scan = true
 
+# Run Nmap's vulnerability detection scripts
+# Automatically checks for common vulnerabilities
+# 🎯 CTF Tip: This can sometimes give you exploits immediately!
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: enable_script_scan = true                                   │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+enable_script_scan = true
+
+# Scan UDP ports in addition to TCP
+# UDP services like DNS and SNMP are often misconfigured
+# ⚠️  REQUIRES ROOT/SUDO: Set to false if not running as root
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: enable_udp_scan = false                                     │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+enable_udp_scan = false
+
+# =====================================================================================
+# 🕷️ GOBUSTER SETTINGS - Web Directory/File Finder
+# =====================================================================================
 [gobuster]
-# Gobuster configurations
+# 
+# 🤔 What is Gobuster?
+# Gobuster finds hidden directories and files on websites
+# It tries thousands of names like /admin, /login, /backup, etc.
+# 
+# 🎯 CTF Strategy: Essential for web challenges - often finds admin panels, config files, etc.
+
+# 📂 File Extensions to Look For
+# Gobuster will try each directory with these extensions
+# Example: if it finds /admin, it also tries /admin.php, /admin.html, etc.
+# 
+# 🎯 CTF Tip: .php and .txt files often contain sensitive information
+# 💡 Add more extensions if you know the target technology (.asp, .jsp, etc.)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: extensions = "php,html,txt,js,css,zip,tar,gz,bak,old"        │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 extensions = "php,html,txt,js,css,zip,tar,gz,bak,old"
+
+# 🔢 Number of concurrent requests (parallel connections)
+# Higher = faster but may overwhelm the server
+# 50 is good for most CTF machines
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: threads = 50                                                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 threads = 50
+
+# ⏱️ Request timeout (how long to wait for each request)
+# 10s is usually enough for CTF machines
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: timeout = "10s"                                              │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 timeout = "10s"
+
+# 🔄 Follow HTTP redirects (301, 302, etc.)
+# false = don't follow redirects (shows you the redirect itself)
+# true = follow redirects (shows you the final destination)
+# 🎯 CTF Tip: Sometimes the redirect location itself is interesting!
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: follow_redirects = false                                     │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 follow_redirects = false
+
+# 📏 Include response length in output
+# Shows how big each response is - helps identify different content
+# Useful for spotting when pages have different content
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: include_length = true                                        │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 include_length = true
 
-# Status codes to include
+# 📊 HTTP Status Codes to Report
+# 200 = OK (found something!)
+# 301/302 = redirect (might be interesting)
+# 401 = authentication required (potential target!)
+# 403 = forbidden (something is there but you can't access it - try harder!)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: status_codes = "200,204,301,302,307,401,403"                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 status_codes = "200,204,301,302,307,401,403"
 
+# =====================================================================================
+# 🦀 FEROXBUSTER SETTINGS - Modern Fast Directory Finder (Alternative to Gobuster)
+# =====================================================================================
 [feroxbuster]
-# Feroxbuster configurations (alternative to gobuster)
+# 
+# 🤔 What is Feroxbuster?
+# A modern, fast alternative to Gobuster written in Rust
+# Generally faster and has more features than Gobuster
+# 
+# 🎯 CTF Tip: Try this if Gobuster is too slow or you want more features
+
+# File extensions (same concept as Gobuster)
+# ┌──────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"│
+# └──────────────────────────────────────────────────────────────────────────────────┘
 extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"
+
+# Concurrent threads
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: threads = 50                                                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 threads = 50
+
+# Request timeout in seconds
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: timeout = 10                                                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 timeout = 10
+
+# 📊 Recursion depth (how many levels deep to search)
+# 4 = if it finds /admin, it will also search /admin/*, /admin/*/*, etc.
+# 🎯 CTF Tip: Depth 3-4 usually finds everything important without taking forever
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: depth = 4                                                    │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 depth = 4
-wordlist_size = "small"  # small, medium, large
 
+# Wordlist size preference (used by BoxRecon's wordlist selection)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: wordlist_size = "small"  # Options: small, medium, large     │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+wordlist_size = "small"  # Options: small, medium, large
+
+# =====================================================================================
+# 🔍 THEHARVESTER SETTINGS - Email and Subdomain Finder
+# =====================================================================================
 [theharvester]
-# theHarvester configurations
+# 
+# 🤔 What is theHarvester?
+# Searches public sources (Google, Bing, etc.) for email addresses and subdomains
+# Useful for gathering information about the target organization
+# 
+# 🎯 CTF Tip: Sometimes finds employee emails or additional subdomains to attack
+
+# 🔍 Data sources to search
+# Multiple search engines provide different results
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: data_source = "google,bing,yahoo,duckduckgo"                │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 data_source = "google,bing,yahoo,duckduckgo"
+
+# 📊 Maximum results to collect
+# 500 is usually enough to find everything available
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: limit = 500                                                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 limit = 500
+
+# ⏱️ Timeout for the entire search process
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: timeout = 300                                               │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 timeout = 300
 
+# =====================================================================================
+# 🌐 DNSRECON SETTINGS - DNS Information Gathering
+# =====================================================================================
 [dnsrecon]
-# DNSrecon configurations
+# 
+# 🤔 What is DNSrecon?
+# Gathers DNS information like subdomains, mail servers, etc.
+# DNS often reveals additional attack surfaces
+# 
+# 🎯 CTF Tip: Sometimes finds internal hostnames or additional services
+
+# 📋 DNS Record Types to Look For
+# A = IP addresses, MX = mail servers, CNAME = aliases, etc.
+# Each type can reveal different information about the target
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: record_types = "A,AAAA,CNAME,MX,NS,PTR,SOA,SRV,TXT"         │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 record_types = "A,AAAA,CNAME,MX,NS,PTR,SOA,SRV,TXT"
+
+# Parallel threads for DNS queries
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: threads = 10                                                │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 threads = 10
+
+# Timeout for DNS operations
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: timeout = 300                                               │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 timeout = 300
 
+# =====================================================================================
+# ⚡ FFUF SETTINGS - Fast Web Fuzzer
+# =====================================================================================
 [ffuf]
-# ffuf configurations
-extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"
-threads = 40
-timeout = 10
-match_codes = "200,204,301,302,307,401,403"
-filter_size = ""  # Filter by response size (optional)
+# 
+# 🤔 What is ffuf?
+# Another fast web fuzzer similar to Gobuster/Feroxbuster
+# Known for being extremely fast and flexible
+# 
+# 🎯 CTF Tip: Great for parameter fuzzing and finding hidden endpoints
 
+# File extensions to test
+extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"
+
+# Concurrent threads
+threads = 40
+
+# Request timeout
+timeout = 10
+
+# 📊 Status codes to include in results
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: match_codes = "200,204,301,302,307,401,403"                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+match_codes = "200,204,301,302,307,401,403"
+
+# 📏 Filter responses by size (leave empty to see all)
+# Example: "1234" would hide responses that are exactly 1234 bytes
+# Useful for hiding error pages that are all the same size
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: filter_size = ""                                            │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+filter_size = ""
+
+# =====================================================================================
+# 🕷️ NIKTO SETTINGS - Web Vulnerability Scanner
+# =====================================================================================
 [nikto]
-# Nikto scanner settings
+# 
+# 🤔 What is Nikto?
+# Scans web servers for known vulnerabilities and misconfigurations
+# Tests for thousands of potential issues
+# 
+# 🎯 CTF Tip: Often finds quick wins like default passwords or known vulnerabilities
+
+# Output format (txt = plain text, easy to read)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: format = "txt"                                              │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 format = "txt"
+
+# Single request timeout
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: timeout = 300                                               │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 timeout = 300
+
+# Maximum time for entire scan
+# Nikto can run for hours on large sites, so we limit it
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: max_scan_time = 300                                         │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 max_scan_time = 300
 
+# =====================================================================================
+# 🔍 WHATWEB SETTINGS - Technology Detection
+# =====================================================================================
 [whatweb]
-# WhatWeb settings
-verbosity = "verbose"
-aggression = 1  # 1=stealthy, 3=aggressive
+# 
+# 🤔 What is WhatWeb?
+# Identifies technologies used by websites (Apache, PHP, WordPress, etc.)
+# Knowing the technology stack helps you choose appropriate exploits
+# 
+# 🎯 CTF Tip: Version information often leads directly to known exploits
 
+# Verbosity level (how much detail to show)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: verbosity = "verbose"                                       │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+verbosity = "verbose"
+
+# 🚨 Aggression level (1=passive/stealthy, 3=aggressive/invasive)
+# 1 = just looks at HTTP headers and page content (STEALTHY)
+# 3 = actively tests for vulnerabilities (AGGRESSIVE but may trigger defenses)
+# 🎯 CTF Tip: Level 1 is usually enough and much faster
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: aggression = 1                                              │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+aggression = 1
+
+# =====================================================================================
+# 📋 OUTPUT SETTINGS - How Results Are Displayed and Saved
+# =====================================================================================
 [output]
-# Output formatting options
+# 
+# These settings control how BoxRecon formats and saves your scan results
+# Good formatting makes it easier to find important information quickly
+
+# 📏 Maximum line length before wrapping
+# Keeps output readable on normal terminal windows
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: max_line_length = 120                                       │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 max_line_length = 120
+
+# ✂️ Cut off very long lines instead of wrapping them
+# Prevents output from becoming messy with extremely long URLs
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: truncate_long_lines = true                                  │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 truncate_long_lines = true
+
+# 🎯 Highlight important findings with emojis
+# Makes it easy to spot important results at a glance
+# 🔓 = open ports, 📁 = directories, ⚠️ = vulnerabilities, etc.
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: highlight_important = true                                  │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 highlight_important = true
+
+# 🕐 Include timestamps in all output files
+# Helps you track when scans were performed
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: include_timestamps = true                                   │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 include_timestamps = true
 
-# Summary report settings
+# 📊 Summary Report Options (what to include in the final report)
+
+# Show the exact commands that were run
+# Helpful for learning and reproducing results
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: include_command_details = true                              │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 include_command_details = true
+
+# Show how long each scan took
+# Helps you optimize scan times and identify slow scans
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: include_execution_time = true                               │
+# └─────────────────────────────────────────────────────────────────────────────────┘
 include_execution_time = true
-include_file_sizes = true 
+
+# Show file sizes of all output files
+# Helps you identify which scans found the most results
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: include_file_sizes = true                                   │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+include_file_sizes = true
+
+# =====================================================================================
+# 🎓 BEGINNER TIPS FOR CUSTOMIZING THIS FILE
+# =====================================================================================
+#
+# 🚀 Want to make scans faster?
+#   • Increase threads (but watch out for overwhelming the target)
+#   • Decrease timeouts (but you might miss slow responses)
+#   • Use smaller wordlists
+#   • Set timing to T5 for Nmap
+#
+# 🕵️ Want more thorough scans?
+#   • Use larger wordlists (medium or big)
+#   • Increase timeouts
+#   • Enable more Nmap scripts
+#   • Increase feroxbuster depth
+#
+# 🎯 Stuck on a CTF machine?
+#   • Try different wordlists
+#   • Increase scan timeouts
+#   • Add custom file extensions based on what you've found
+#   • Enable more aggressive WhatWeb scanning
+#
+# 🛠️ Advanced customization:
+#   • Create custom wordlists for specific types of challenges
+#   • Adjust thread counts based on your internet speed
+#   • Modify status codes based on interesting responses you've seen
+#
+# 💡 Remember: This file is reloaded each time you run BoxRecon,
+#     so you can experiment with different settings!
+#
+# =====================================================================================
+# 📋 QUICK SETTINGS REFERENCE - Most Commonly Modified Values
+# =====================================================================================
+# 
+# 🔥 SPEED SETTINGS (Make scans faster/slower):
+#   scan_timeout = 300           # How long to wait before giving up
+#   default_threads = 50         # Parallel connections (higher = faster)
+#   timing = "T4"               # Nmap timing (T1=slow, T5=insane)
+#   
+# 📚 WORDLIST SETTINGS (Change what directories to look for):
+#   common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"  # Main wordlist  
+#   small = "/usr/share/wordlists/dirb/common.txt"   # Alternative wordlist
+#   custom = "/usr/share/seclists/Discovery/Web-Content/common.txt"  # SecLists (recommended)
+#   
+# 🕷️ WEB SCANNING SETTINGS (Customize directory/file hunting):
+#   extensions = "php,html,txt"  # File types to look for
+#   threads = 50                # Concurrent web requests
+#   depth = 4                   # How deep to recurse in directories
+#   status_codes = "200,403"    # Which HTTP responses to show
+#   
+# 🗺️ NMAP SETTINGS (Port scanning behavior):
+#   quick_ports = "1000"        # How many ports to scan quickly
+#   udp_ports = "200"          # UDP ports to check
+#   version_intensity = "5"     # How hard to try detecting versions
+#
+# ===================================================================================== 

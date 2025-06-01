@@ -4,7 +4,7 @@ BoxRecon - A user-friendly CLI tool for machine reconnaissance
 Author: hckerhub (X: @hckerhub)
 Website: https://hackerhub.me
 GitHub: https://github.com/hckerhub
-Version: 1.0.0
+Version: 2.0.0
 """
 
 import os
@@ -76,8 +76,8 @@ BANNER = """
 ██████╔╝╚██████╔╝██╔╝ ██╗██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
 ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
 
-    ⚡ Advanced Machine Reconnaissance Framework ⚡
-    ═══════════════════════════════════════════════
+    ⚡ Advanced Machine Reconnaissance Framework v2.0.0 ⚡
+    ════════════════════════════════════════════════════════
 """
 
 class Colors:
@@ -94,12 +94,16 @@ class Colors:
     END = '\033[0m'
 
 class BoxRecon:
-    def __init__(self, skip_disclaimer=False):
+    def __init__(self, skip_disclaimer=False, sudo_mode=None):
         self.target_ip = None
         self.output_dir = None
         self.results = {}
         self.config = self.load_config()
         self.skip_disclaimer = skip_disclaimer
+        self.sudo_mode = sudo_mode  # None = ask user, True = enabled, False = disabled
+        self.open_ports = []  # Store discovered open ports
+        self.web_ports = []   # Store discovered web service ports
+        self.responsive_web_ports = []  # Store web ports that actually respond with content
     
     def load_config(self) -> Dict:
         """Load configuration from config.toml file"""
@@ -346,6 +350,69 @@ class BoxRecon:
         print(f"{Colors.BLUE}Created by hckerhub | {Colors.CYAN}https://hackerhub.me{Colors.END}")
         print(f"{Colors.PURPLE}Support the project: {Colors.YELLOW}https://buymeacoffee.com/hckerhub{Colors.END}\n")
     
+    def check_root_privileges(self) -> bool:
+        """Check if running with root privileges"""
+        import os
+        return os.geteuid() == 0
+    
+    def test_sudo_access(self) -> bool:
+        """Test if sudo access is available"""
+        try:
+            result = subprocess.run(['sudo', '-n', 'true'], capture_output=True, timeout=5)
+            return result.returncode == 0
+        except:
+            return False
+    
+    def get_sudo_mode_preference(self) -> bool:
+        """Get user preference for sudo mode with intelligent recommendations"""
+        if self.sudo_mode is not None:
+            return self.sudo_mode
+        
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🔐 Enhanced Scanning Mode Configuration:{Colors.END}")
+        
+        is_root = self.check_root_privileges()
+        has_sudo = self.test_sudo_access()
+        
+        if is_root:
+            print(f"{Colors.GREEN}✅ Running as root - Full scanning capabilities available{Colors.END}")
+            return True
+        elif has_sudo:
+            print(f"{Colors.YELLOW}🔑 Sudo access detected - Enhanced scans available{Colors.END}")
+        else:
+            print(f"{Colors.RED}⚠️  No root/sudo access - Limited to unprivileged scans{Colors.END}")
+        
+        print(f"\n{Colors.CYAN}Enhanced Mode Benefits:{Colors.END}")
+        print(f"  ✅ SYN Scans (faster, more stealthy)")
+        print(f"  ✅ OS Detection (identify target operating system)")
+        print(f"  ✅ UDP Scans (discover UDP services like DNS, SNMP)")
+        print(f"  ✅ Advanced Nmap scripts")
+        
+        print(f"\n{Colors.YELLOW}Standard Mode Features:{Colors.END}")
+        print(f"  ✅ TCP Connect Scans (reliable, works without root)")
+        print(f"  ✅ Service Version Detection")
+        print(f"  ✅ All web enumeration tools")
+        print(f"  ✅ DNS and subdomain enumeration")
+        
+        if not has_sudo and not is_root:
+            print(f"\n{Colors.RED}💡 Running in Standard Mode (no sudo access detected){Colors.END}")
+            return False
+        
+        while True:
+            if has_sudo or is_root:
+                prompt = f"\n{Colors.CYAN}Enable Enhanced Mode with sudo privileges? (y/N): {Colors.END}"
+                response = input(prompt).strip().lower()
+                
+                if response in ['y', 'yes']:
+                    print(f"{Colors.GREEN}🚀 Enhanced Mode enabled - Using advanced scanning techniques{Colors.END}")
+                    return True
+                elif response in ['n', 'no', '']:
+                    print(f"{Colors.YELLOW}📊 Standard Mode enabled - Using unprivileged scans{Colors.END}")
+                    return False
+                else:
+                    print(f"{Colors.RED}Please enter 'yes' or 'no'{Colors.END}")
+            else:
+                return False
+    
     def validate_ip(self, ip_string: str) -> bool:
         """Validate IP address format"""
         try:
@@ -353,6 +420,224 @@ class BoxRecon:
             return True
         except ValueError:
             return False
+    
+    def validate_port_range(self, port_range: str) -> bool:
+        """Validate port range format (e.g., '80', '1-1000', '80,443,8080')"""
+        if not port_range.strip():
+            return False
+        
+        # Handle 'default' keyword
+        if port_range.strip().lower() == 'default':
+            return True
+        
+        try:
+            # Handle comma-separated ports
+            if ',' in port_range:
+                ports = port_range.split(',')
+                for port in ports:
+                    port_num = int(port.strip())
+                    if not (1 <= port_num <= 65535):
+                        return False
+                return True
+            
+            # Handle range (e.g., '1-1000')
+            elif '-' in port_range:
+                start, end = port_range.split('-', 1)
+                start_port = int(start.strip())
+                end_port = int(end.strip())
+                if not (1 <= start_port <= end_port <= 65535):
+                    return False
+                return True
+            
+            # Handle single port
+            else:
+                port_num = int(port_range.strip())
+                return 1 <= port_num <= 65535
+                
+        except ValueError:
+            return False
+    
+    def get_port_range_input(self) -> str:
+        """Get port range from user with validation"""
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🔌 Port Range Configuration:{Colors.END}")
+        print(f"{Colors.YELLOW}Examples:{Colors.END}")
+        print(f"  • {Colors.CYAN}80{Colors.END} - Single port")
+        print(f"  • {Colors.CYAN}1-1000{Colors.END} - Port range")
+        print(f"  • {Colors.CYAN}80,443,8080{Colors.END} - Specific ports")
+        print(f"  • {Colors.CYAN}1-65535{Colors.END} - All ports")
+        print(f"  • {Colors.GREEN}default{Colors.END} - Use default configuration")
+        
+        while True:
+            port_input = input(f"\n{Colors.CYAN}🎯 Enter port range (or 'default'): {Colors.END}").strip()
+            
+            if port_input.lower() == 'default':
+                return 'default'
+            elif self.validate_port_range(port_input):
+                print(f"{Colors.GREEN}✅ Valid port range: {port_input}{Colors.END}")
+                return port_input
+            else:
+                print(f"{Colors.RED}❌ Invalid port range. Please try again.{Colors.END}")
+    
+    def test_web_port_responsiveness(self, port: int) -> dict:
+        """Test if a web port responds with actual content"""
+        protocols = ['https' if port in [443, 8443] else 'http']
+        if port == 443:
+            protocols = ['https', 'http']  # Try both for 443
+        
+        for protocol in protocols:
+            try:
+                import urllib.request
+                import urllib.error
+                import ssl
+                
+                url = f"{protocol}://{self.target_ip}:{port}/"
+                
+                # Create SSL context that doesn't verify certificates
+                if protocol == 'https':
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+                    opener = urllib.request.build_opener(https_handler)
+                    urllib.request.install_opener(opener)
+                
+                request = urllib.request.Request(url)
+                request.add_header('User-Agent', 'BoxRecon/1.0')
+                
+                with urllib.request.urlopen(request, timeout=10) as response:
+                    status_code = response.getcode()
+                    content_type = response.headers.get('content-type', '')
+                    content_length = response.headers.get('content-length', '0')
+                    server = response.headers.get('server', '')
+                    
+                    # Try to read a bit of content
+                    try:
+                        content_sample = response.read(1024).decode('utf-8', errors='ignore')
+                        has_content = len(content_sample.strip()) > 0
+                    except:
+                        has_content = False
+                    
+                    return {
+                        'responsive': True,
+                        'protocol': protocol,
+                        'status_code': status_code,
+                        'content_type': content_type,
+                        'content_length': content_length,
+                        'server': server,
+                        'has_content': has_content,
+                        'interesting': status_code in [200, 301, 302] and (has_content or status_code != 404)
+                    }
+                    
+            except Exception as e:
+                continue
+        
+        return {'responsive': False, 'protocol': 'http', 'error': str(e)}
+    
+    def parse_nmap_output_for_ports(self, output_file: str) -> None:
+        """Parse nmap output to extract open ports and identify web services"""
+        try:
+            with open(output_file, 'r') as f:
+                content = f.read()
+            
+            # Reset port lists
+            self.open_ports = []
+            self.web_ports = []
+            self.responsive_web_ports = []
+            
+            # Common web service patterns
+            web_services = ['http', 'https', 'http-proxy', 'http-alt', 'ssl/http', 'ssl/https']
+            
+            # Parse nmap output for open ports
+            port_lines = re.findall(r'(\d+)/tcp\s+open\s+([^\s]+)', content)
+            
+            for port_num, service in port_lines:
+                port = int(port_num)
+                self.open_ports.append(port)
+                
+                # Check if it's a web service
+                if (service.lower() in web_services or 
+                    port in [80, 443, 8080, 8443, 8000, 8888, 9000, 3000] or
+                    'http' in service.lower()):
+                    self.web_ports.append(port)
+            
+            if self.open_ports:
+                print(f"{Colors.GREEN}🔓 Discovered {len(self.open_ports)} open ports: {sorted(self.open_ports)}{Colors.END}")
+            
+            if self.web_ports:
+                print(f"{Colors.CYAN}🌐 Detected {len(self.web_ports)} web services on ports: {sorted(self.web_ports)}{Colors.END}")
+                
+                # Test web port responsiveness
+                print(f"{Colors.YELLOW}🔍 Testing web port responsiveness...{Colors.END}")
+                for port in self.web_ports:
+                    response_info = self.test_web_port_responsiveness(port)
+                    if response_info['responsive']:
+                        self.responsive_web_ports.append({
+                            'port': port,
+                            'info': response_info
+                        })
+                        status_icon = "🟢" if response_info['interesting'] else "🟡"
+                        print(f"  {status_icon} Port {port} ({response_info['protocol']}) - Status: {response_info.get('status_code', 'N/A')}")
+                    else:
+                        print(f"  🔴 Port {port} - Not responsive")
+                
+                # Sort responsive ports by interestingness
+                self.responsive_web_ports.sort(key=lambda x: (
+                    x['info']['interesting'],  # Interesting ports first
+                    x['info']['status_code'] == 200,  # 200 OK responses first
+                    x['info']['has_content']  # Ports with content first
+                ), reverse=True)
+                
+                if self.responsive_web_ports:
+                    interesting_ports = [p['port'] for p in self.responsive_web_ports if p['info']['interesting']]
+                    if interesting_ports:
+                        print(f"{Colors.GREEN}🎯 Prioritizing interesting web ports: {interesting_ports}{Colors.END}")
+                    else:
+                        print(f"{Colors.YELLOW}📝 All web ports will be tested{Colors.END}")
+                else:
+                    print(f"{Colors.YELLOW}⚠️  No responsive web services - HTTP scans may have limited results{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️  No web services detected - HTTP scans will be skipped{Colors.END}")
+                
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Could not parse nmap output for port detection: {e}{Colors.END}")
+    
+    def should_run_web_scan(self, scan_type: str) -> bool:
+        """Determine if web-based scans should run based on discovered ports"""
+        web_scan_types = ['gobuster_common', 'gobuster_big', 'feroxbuster', 'ffuf', 'nikto', 'whatweb']
+        
+        if scan_type not in web_scan_types:
+            return True  # Always run non-web scans
+        
+        if not self.web_ports:
+            print(f"{Colors.YELLOW}⏭️  Skipping {scan_type.replace('_', ' ').title()} - No web services found{Colors.END}")
+            return False
+        
+        # If we have responsive ports, prioritize those; otherwise use all detected web ports
+        if self.responsive_web_ports:
+            return True
+        elif self.web_ports:
+            print(f"{Colors.YELLOW}⚠️  {scan_type.replace('_', ' ').title()} - No responsive web ports, but trying detected web services{Colors.END}")
+            return True
+        
+        return False
+    
+    def get_best_web_port(self) -> tuple:
+        """Get the most promising web port and protocol for scanning"""
+        # Prioritize responsive and interesting ports
+        if self.responsive_web_ports:
+            best_port_info = self.responsive_web_ports[0]  # Already sorted by interestingness
+            port = best_port_info['port']
+            protocol = best_port_info['info']['protocol']
+            return port, protocol
+        
+        # Fallback to first discovered web port
+        if self.web_ports:
+            port = self.web_ports[0]
+            protocol = 'https' if port in [443, 8443] else 'http'
+            return port, protocol
+        
+        # Last resort
+        return 80, 'http'
     
     def get_target_ip(self) -> str:
         """Get and validate target IP address from user"""
@@ -552,29 +837,48 @@ class BoxRecon:
             print(f"{Colors.RED}❌ Error running {description}: {str(e)}{Colors.END}")
             return {'status': 'error', 'output_file': output_file, 'error': str(e)}
     
-    def nmap_quick_scan(self) -> Dict:
-        """Run quick Nmap scan using configuration"""
+    def nmap_quick_scan(self, port_range=None) -> Dict:
+        """Run quick Nmap scan using configuration or custom port range"""
         nmap_config = self.config['nmap']
-        command = ['nmap', '-sS']
+        
+        # Determine scan type based on sudo mode
+        if hasattr(self, 'enhanced_mode') and self.enhanced_mode:
+            command = ['sudo', 'nmap', '-sS']  # SYN scan with sudo
+            scan_description = 'Nmap Quick Scan (Enhanced SYN)'
+        else:
+            command = ['nmap', '-sT']  # TCP connect scan
+            scan_description = 'Nmap Quick Scan (Standard TCP)'
         
         if nmap_config['enable_version_detection']:
             command.extend(['-sV', '--version-intensity', str(nmap_config['version_intensity'])])
         
-        if nmap_config['enable_os_detection']:
+        # Only enable OS detection in enhanced mode
+        if nmap_config['enable_os_detection'] and hasattr(self, 'enhanced_mode') and self.enhanced_mode:
             command.append('-O')
         
-        command.extend([
-            '--top-ports', str(nmap_config['quick_ports']),
-            f'-{nmap_config["timing"]}',
-            self.target_ip
-        ])
+        # Use custom port range if provided, otherwise use default
+        if port_range and port_range != 'default':
+            if ',' in port_range or '-' in port_range:
+                command.extend(['-p', port_range])
+            else:
+                command.extend(['-p', port_range])
+        else:
+            command.extend(['--top-ports', str(nmap_config['quick_ports'])])
         
-        return self.run_command(command, 'nmap_quick.txt', 'Nmap Quick Scan', 'nmap')
+        command.extend([f'-{nmap_config["timing"]}', self.target_ip])
+        
+        result = self.run_command(command, 'nmap_quick.txt', scan_description, 'nmap')
+        
+        # Parse output for port detection if scan was successful
+        if result['status'] == 'success':
+            self.parse_nmap_output_for_ports(result['output_file'])
+        
+        return result
     
-    def nmap_full_scan(self) -> Dict:
-        """Run full Nmap scan using configuration"""
+    def nmap_full_scan(self, port_range=None) -> Dict:
+        """Run full Nmap scan using configuration or custom port range"""
         nmap_config = self.config['nmap']
-        command = ['nmap', '-sS']
+        command = ['nmap', '-sT']
         
         if nmap_config['enable_version_detection']:
             command.extend(['-sV', '--version-intensity', '9'])
@@ -582,36 +886,71 @@ class BoxRecon:
         if nmap_config['enable_os_detection']:
             command.append('-O')
         
-        command.extend(['-p-', f'-{nmap_config["timing"]}'])
+        # Use custom port range if provided, otherwise scan all ports
+        if port_range and port_range != 'default':
+            command.extend(['-p', port_range])
+        else:
+            command.extend(['-p-'])
+        
+        command.append(f'-{nmap_config["timing"]}')
         
         if nmap_config['enable_script_scan']:
             command.extend(['--script=default,vuln'])
         
         command.append(self.target_ip)
         
-        return self.run_command(command, 'nmap_full.txt', 'Nmap Full Scan', 'nmap')
+        result = self.run_command(command, 'nmap_full.txt', 'Nmap Full Scan', 'nmap')
+        
+        # Parse output for port detection if scan was successful
+        if result['status'] == 'success':
+            self.parse_nmap_output_for_ports(result['output_file'])
+        
+        return result
     
-    def nmap_udp_scan(self) -> Dict:
-        """Run UDP Nmap scan using configuration"""
+    def nmap_udp_scan(self, port_range=None) -> Dict:
+        """Run UDP Nmap scan using configuration or custom port range"""
+        # UDP scans require root privileges
+        if not (hasattr(self, 'enhanced_mode') and self.enhanced_mode):
+            print(f"{Colors.YELLOW}⏭️  Skipping UDP Scan - Requires Enhanced Mode (sudo privileges){Colors.END}")
+            return {
+                'status': 'skipped',
+                'reason': 'UDP scans require root privileges (Enhanced Mode)',
+                'recommendation': 'Enable Enhanced Mode to use UDP scanning'
+            }
+        
         nmap_config = self.config['nmap']
-        command = ['nmap', '-sU']
+        command = ['sudo', 'nmap', '-sU']
         
-        command.extend([
-            '--top-ports', str(nmap_config['udp_ports']),
-            f'-{nmap_config["timing"]}',
-            self.target_ip
-        ])
+        # Use custom port range if provided, otherwise use default UDP ports
+        if port_range and port_range != 'default':
+            command.extend(['-p', port_range])
+        else:
+            command.extend(['--top-ports', str(nmap_config['udp_ports'])])
         
-        return self.run_command(command, 'nmap_udp.txt', 'Nmap UDP Scan', 'nmap')
+        command.extend([f'-{nmap_config["timing"]}', self.target_ip])
+        
+        result = self.run_command(command, 'nmap_udp.txt', 'Nmap UDP Scan (Enhanced)', 'nmap')
+        
+        # Parse output for port detection if scan was successful
+        if result['status'] == 'success':
+            self.parse_nmap_output_for_ports(result['output_file'])
+        
+        return result
     
     def gobuster_common(self) -> Dict:
         """Run Gobuster with common wordlist (HTB-optimized)"""
+        if not self.should_run_web_scan('gobuster_common'):
+            return {'status': 'skipped', 'reason': 'No web services detected'}
+        
         gobuster_config = self.config['gobuster']
-        wordlist = self.get_wordlist_path('common')  # Use HTB-optimized small wordlist
+        wordlist = self.get_wordlist_path('common')
+        
+        # Use the best available web port
+        target_port, protocol = self.get_best_web_port()
         
         command = [
             'gobuster', 'dir',
-            '-u', f'http://{self.target_ip}',
+            '-u', f'{protocol}://{self.target_ip}:{target_port}',
             '-w', wordlist,
             '-x', gobuster_config['extensions'],
             '-t', str(gobuster_config['threads']),
@@ -619,22 +958,33 @@ class BoxRecon:
             '--no-error'
         ]
         
-        if gobuster_config['include_length']:
-            command.append('-l')
+        # Length is shown by default in gobuster dir mode
+        # Removed the incorrect -l flag that was causing errors
         
         if gobuster_config['status_codes']:
-            command.extend(['-s', gobuster_config['status_codes']])
+            command.extend(['-s', gobuster_config['status_codes'], '-b', ''])  # Clear default blacklist
         
-        return self.run_command(command, 'gobuster_common.txt', 'Gobuster Common Wordlist', 'gobuster')
+        description = f'Gobuster Common Wordlist ({protocol.upper()} Port {target_port})'
+        if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
+            description += ' [Priority Target]'
+        
+        return self.run_command(command, 'gobuster_common.txt', description, 'gobuster')
     
     def gobuster_big(self) -> Dict:
         """Run Gobuster with big wordlist"""
+        if not self.should_run_web_scan('gobuster_big'):
+            return {'status': 'skipped', 'reason': 'No web services detected'}
+        
         gobuster_config = self.config['gobuster']
         wordlist = self.get_wordlist_path('big')
         
+        # Use discovered web ports or default to port 80
+        target_port = self.web_ports[0] if self.web_ports else 80
+        protocol = 'https' if target_port in [443, 8443] else 'http'
+        
         command = [
             'gobuster', 'dir',
-            '-u', f'http://{self.target_ip}',
+            '-u', f'{protocol}://{self.target_ip}:{target_port}',
             '-w', wordlist,
             '-x', gobuster_config['extensions'],
             '-t', str(gobuster_config['threads']),
@@ -642,22 +992,28 @@ class BoxRecon:
             '--no-error'
         ]
         
-        if gobuster_config['include_length']:
-            command.append('-l')
+        # Length is shown by default in gobuster dir mode
+        # Removed the incorrect -l flag that was causing errors
         
         if gobuster_config['status_codes']:
-            command.extend(['-s', gobuster_config['status_codes']])
+            command.extend(['-s', gobuster_config['status_codes'], '-b', ''])  # Clear default blacklist
         
-        return self.run_command(command, 'gobuster_big.txt', 'Gobuster Big Wordlist', 'gobuster')
+        return self.run_command(command, 'gobuster_big.txt', f'Gobuster Big Wordlist (Port {target_port})', 'gobuster')
     
     def feroxbuster_scan(self) -> Dict:
         """Run Feroxbuster directory enumeration"""
+        if not self.should_run_web_scan('feroxbuster'):
+            return {'status': 'skipped', 'reason': 'No web services detected'}
+        
         ferox_config = self.config['feroxbuster']
         wordlist = self.get_wordlist_path(ferox_config['wordlist_size'])
         
+        # Use the best available web port
+        target_port, protocol = self.get_best_web_port()
+        
         command = [
             'feroxbuster',
-            '-u', f'http://{self.target_ip}',
+            '-u', f'{protocol}://{self.target_ip}:{target_port}',
             '-w', wordlist,
             '-x', ferox_config['extensions'],
             '-t', str(ferox_config['threads']),
@@ -667,16 +1023,27 @@ class BoxRecon:
             '-q'  # Quiet mode for cleaner output
         ]
         
-        return self.run_command(command, 'feroxbuster.txt', 'Feroxbuster Directory Enumeration', 'feroxbuster')
+        description = f'Feroxbuster Directory Enumeration ({protocol.upper()} Port {target_port})'
+        if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
+            description += ' [Priority Target]'
+        
+        return self.run_command(command, 'feroxbuster.txt', description, 'feroxbuster')
     
     def ffuf_scan(self) -> Dict:
         """Run ffuf web fuzzer"""
+        if not self.should_run_web_scan('ffuf'):
+            return {'status': 'skipped', 'reason': 'No web services detected'}
+        
         ffuf_config = self.config['ffuf']
         wordlist = self.get_wordlist_path('common')
         
+        # Use discovered web ports or default to port 80
+        target_port = self.web_ports[0] if self.web_ports else 80
+        protocol = 'https' if target_port in [443, 8443] else 'http'
+        
         command = [
             'ffuf',
-            '-u', f'http://{self.target_ip}/FUZZ',
+            '-u', f'{protocol}://{self.target_ip}:{target_port}/FUZZ',
             '-w', wordlist,
             '-e', ffuf_config['extensions'],
             '-t', str(ffuf_config['threads']),
@@ -689,31 +1056,54 @@ class BoxRecon:
         if ffuf_config['filter_size']:
             command.extend(['-fs', ffuf_config['filter_size']])
         
-        return self.run_command(command, 'ffuf.txt', 'ffuf Web Fuzzer', 'ffuf')
+        return self.run_command(command, 'ffuf.txt', f'ffuf Web Fuzzer (Port {target_port})', 'ffuf')
     
     def nikto_scan(self) -> Dict:
         """Run Nikto web scanner using configuration"""
+        if not self.should_run_web_scan('nikto'):
+            return {'status': 'skipped', 'reason': 'No web services detected'}
+        
         nikto_config = self.config['nikto']
+        
+        # Use the best available web port
+        target_port, protocol = self.get_best_web_port()
+        
         command = [
             'nikto',
-            '-h', self.target_ip,
-            '-Format', nikto_config['format'],
+            '-h', f'{self.target_ip}:{target_port}',
             '-maxtime', str(nikto_config['max_scan_time'])
         ]
-        return self.run_command(command, 'nikto.txt', 'Nikto Web Scanner', 'nikto')
+        
+        # Add SSL flag if using HTTPS
+        if protocol == 'https':
+            command.append('-ssl')
+        
+        description = f'Nikto Web Scanner ({protocol.upper()} Port {target_port})'
+        if self.responsive_web_ports and target_port == self.responsive_web_ports[0]['port']:
+            description += ' [Priority Target]'
+        
+        return self.run_command(command, 'nikto.txt', description, 'nikto')
     
     def whatweb_scan(self) -> Dict:
         """Run WhatWeb technology detection using configuration"""
+        if not self.should_run_web_scan('whatweb'):
+            return {'status': 'skipped', 'reason': 'No web services detected'}
+        
         whatweb_config = self.config['whatweb']
+        
+        # Use discovered web ports or default to port 80
+        target_port = self.web_ports[0] if self.web_ports else 80
+        protocol = 'https' if target_port in [443, 8443] else 'http'
+        
         command = [
             'whatweb',
             '-v' if whatweb_config['verbosity'] == 'verbose' else '',
             f'-a{whatweb_config["aggression"]}',
-            self.target_ip
+            f'{protocol}://{self.target_ip}:{target_port}'
         ]
         # Remove empty strings from command
         command = [arg for arg in command if arg]
-        return self.run_command(command, 'whatweb.txt', 'WhatWeb Technology Detection', 'whatweb')
+        return self.run_command(command, 'whatweb.txt', f'WhatWeb Technology Detection (Port {target_port})', 'whatweb')
     
     def theharvester_scan(self) -> Dict:
         """Run theHarvester for email and subdomain gathering"""
@@ -762,10 +1152,21 @@ class BoxRecon:
             f.write(f"**Target IP:** `{self.target_ip}`\n")
             f.write(f"**Scan Date:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"**Output Directory:** `{self.output_dir}`\n")
+            f.write(f"**Enhanced Mode:** {'✅ Enabled (sudo privileges)' if hasattr(self, 'enhanced_mode') and self.enhanced_mode else '❌ Disabled (standard mode)'}\n")
             f.write(f"**Total Scans:** {len(self.results)} ({successful_scans} successful)\n")
             f.write(f"**Total Execution Time:** {total_time:.1f} seconds ({total_time/60:.1f} minutes)\n")
             f.write(f"**Total Output Size:** {total_size:,} bytes ({total_size/1024:.1f} KB)\n")
             f.write(f"**Configuration Timeout:** {self.config['general']['scan_timeout']} seconds\n\n")
+            
+            # Port discovery summary
+            if self.open_ports:
+                f.write(f"**Open Ports Found:** {len(self.open_ports)} ({', '.join(map(str, sorted(self.open_ports)))})\n")
+            if self.web_ports:
+                f.write(f"**Web Services:** {len(self.web_ports)} detected ({', '.join(map(str, sorted(self.web_ports)))})\n")
+            if self.responsive_web_ports:
+                responsive_ports = [str(p['port']) for p in self.responsive_web_ports]
+                f.write(f"**Responsive Web Ports:** {', '.join(responsive_ports)} (tested and confirmed active)\n")
+            f.write("\n")
             
             # Scan Results
             f.write("## 🔍 Executed Scans\n\n")
@@ -775,28 +1176,34 @@ class BoxRecon:
                     'failed': '❌', 
                     'timeout': '⏰',
                     'not_found': '🚫',
-                    'error': '💥'
+                    'error': '💥',
+                    'skipped': '⏭️'
                 }.get(result['status'], '❓')
                 
                 f.write(f"### {status_emoji} {scan_name.replace('_', ' ').title()}\n\n")
                 f.write(f"- **Status:** {result['status'].upper()}\n")
-                f.write(f"- **Output File:** [`{Path(result['output_file']).name}`]({result['output_file']})\n")
                 
-                if 'execution_time' in result:
-                    f.write(f"- **Execution Time:** {result['execution_time']:.2f} seconds\n")
-                
-                if 'file_size' in result:
-                    f.write(f"- **File Size:** {result['file_size']:,} bytes\n")
-                
-                if 'return_code' in result:
-                    f.write(f"- **Return Code:** {result['return_code']}\n")
-                
-                if result['status'] == 'timeout':
-                    f.write(f"- **Timeout Duration:** {result.get('timeout_duration', 'Unknown')} seconds\n")
-                    f.write("- **Recommendation:** Consider increasing timeout or using smaller wordlists\n")
-                
-                if result['status'] == 'failed':
-                    f.write("- **Recommendation:** Check tool installation and target accessibility\n")
+                if result['status'] == 'skipped':
+                    f.write(f"- **Reason:** {result.get('reason', 'Scan was skipped')}\n")
+                    f.write("- **Recommendation:** Run an nmap scan first to detect web services\n")
+                else:
+                    f.write(f"- **Output File:** [`{Path(result['output_file']).name}`]({result['output_file']})\n")
+                    
+                    if 'execution_time' in result:
+                        f.write(f"- **Execution Time:** {result['execution_time']:.2f} seconds\n")
+                    
+                    if 'file_size' in result:
+                        f.write(f"- **File Size:** {result['file_size']:,} bytes\n")
+                    
+                    if 'return_code' in result:
+                        f.write(f"- **Return Code:** {result['return_code']}\n")
+                    
+                    if result['status'] == 'timeout':
+                        f.write(f"- **Timeout Duration:** {result.get('timeout_duration', 'Unknown')} seconds\n")
+                        f.write("- **Recommendation:** Consider increasing timeout or using smaller wordlists\n")
+                    
+                    if result['status'] == 'failed':
+                        f.write("- **Recommendation:** Check tool installation and target accessibility\n")
                 
                 f.write("\n")
             
@@ -876,40 +1283,75 @@ class BoxRecon:
             f.write("Ensure you have proper authorization before conducting any security assessments.\n")
             f.write("The author is not responsible for any misuse of this tool or its output.\n\n")
             f.write("---\n")
-            f.write(f"*Report generated by BoxRecon v1.0.0 on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n")
+            f.write(f"*Report generated by BoxRecon v2.0.0 on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n")
             f.write(f"*Created by [hckerhub](https://hackerhub.me) | Support: [Buy Me a Coffee ☕](https://buymeacoffee.com/hckerhub)*\n")
         
         print(f"{Colors.GREEN}📋 Enhanced summary report generated: {summary_file}{Colors.END}")
         print(f"{Colors.CYAN}💡 Tip: Open the summary report for detailed analysis guidance{Colors.END}")
     
-    def run_attacks(self, selected_attacks: List[str]):
-        """Execute selected attacks"""
-        attack_methods = {
-            'nmap_quick': self.nmap_quick_scan,
-            'nmap_full': self.nmap_full_scan,
-            'nmap_udp': self.nmap_udp_scan,
-            'gobuster_common': self.gobuster_common,
-            'gobuster_big': self.gobuster_big,
-            'feroxbuster': self.feroxbuster_scan,
-            'ffuf': self.ffuf_scan,
-            'nikto': self.nikto_scan,
-            'whatweb': self.whatweb_scan,
-            'theharvester': self.theharvester_scan,
-            'dnsrecon': self.dnsrecon_scan
-        }
-        
+    def run_attacks(self, selected_attacks: List[str], port_range: str = None):
+        """Execute selected attacks with optional port range"""
         print(f"\n{Colors.BOLD}{Colors.GREEN}🚀 Starting reconnaissance on {self.target_ip}...{Colors.END}\n")
         
+        # Get port range for nmap scans if needed
+        nmap_scans = ['nmap_quick', 'nmap_full', 'nmap_udp']
+        has_nmap_scans = any(scan in selected_attacks for scan in nmap_scans)
+        
+        if has_nmap_scans and not port_range:
+            port_range = self.get_port_range_input()
+        
+        # Execute all selected scans
         for attack in selected_attacks:
-            if attack in attack_methods:
-                self.results[attack] = attack_methods[attack]()
-                print()  # Add spacing between attacks
+            if attack == 'nmap_quick':
+                self.results[attack] = self.nmap_quick_scan(port_range)
+            elif attack == 'nmap_full':
+                self.results[attack] = self.nmap_full_scan(port_range)
+            elif attack == 'nmap_udp':
+                self.results[attack] = self.nmap_udp_scan(port_range)
+            elif attack == 'gobuster_common':
+                self.results[attack] = self.gobuster_common()
+            elif attack == 'gobuster_big':
+                self.results[attack] = self.gobuster_big()
+            elif attack == 'feroxbuster':
+                self.results[attack] = self.feroxbuster_scan()
+            elif attack == 'ffuf':
+                self.results[attack] = self.ffuf_scan()
+            elif attack == 'nikto':
+                self.results[attack] = self.nikto_scan()
+            elif attack == 'whatweb':
+                self.results[attack] = self.whatweb_scan()
+            elif attack == 'theharvester':
+                self.results[attack] = self.theharvester_scan()
+            elif attack == 'dnsrecon':
+                self.results[attack] = self.dnsrecon_scan()
+            
+            # Show results status
+            if attack in self.results:
+                status = self.results[attack]['status']
+                if status == 'skipped':
+                    print(f"{Colors.YELLOW}⏭️  {attack.replace('_', ' ').title()} - {self.results[attack].get('reason', 'Skipped')}{Colors.END}")
+                elif status == 'success':
+                    print(f"{Colors.GREEN}✅ {attack.replace('_', ' ').title()} - Completed{Colors.END}")
+                elif status == 'failed':
+                    print(f"{Colors.RED}❌ {attack.replace('_', ' ').title()} - Failed{Colors.END}")
+                elif status == 'timeout':
+                    print(f"{Colors.YELLOW}⏰ {attack.replace('_', ' ').title()} - Timed out{Colors.END}")
+            
+            print()  # Add spacing between attacks
         
         self.generate_summary_report()
         
         print(f"\n{Colors.BOLD}{Colors.GREEN}🎉 All scans completed!{Colors.END}")
         print(f"{Colors.CYAN}📁 Results saved in: {self.output_dir}{Colors.END}")
         print(f"{Colors.CYAN}📋 Check SUMMARY_REPORT.md for an overview{Colors.END}")
+        
+        # Show web service detection summary
+        if self.web_ports:
+            print(f"{Colors.GREEN}🌐 Web services detected on ports: {sorted(self.web_ports)}{Colors.END}")
+        elif any(scan in selected_attacks for scan in ['gobuster_common', 'gobuster_big', 'feroxbuster', 'ffuf', 'nikto', 'whatweb']):
+            print(f"{Colors.YELLOW}⚠️  No web services detected - some HTTP scans were skipped{Colors.END}")
+        
+        print(f"{Colors.CYAN}💡 Tip: Review individual scan files for detailed results{Colors.END}")
     
     def check_dependencies(self):
         """Check if required tools are installed"""
@@ -949,6 +1391,9 @@ class BoxRecon:
         self.check_dependencies()
         print()
         
+        # Get sudo mode preference
+        self.enhanced_mode = self.get_sudo_mode_preference()
+        
         # Get target IP
         self.target_ip = self.get_target_ip()
         
@@ -959,9 +1404,20 @@ class BoxRecon:
         selected_attacks = self.show_attack_menu()
         
         # Confirm before starting
+        print(f"\n{Colors.BOLD}📋 Scan Configuration:{Colors.END}")
+        print(f"  🎯 Target IP: {self.target_ip}")
+        print(f"  📁 Output Directory: {self.output_dir}")
+        print(f"  🔐 Enhanced Mode: {'✅ Enabled (sudo)' if self.enhanced_mode else '❌ Disabled (standard)'}")
         print(f"\n{Colors.BOLD}📋 Selected attacks:{Colors.END}")
         for attack in selected_attacks:
-            print(f"  • {attack.replace('_', ' ').title()}")
+            enhanced_note = ""
+            if attack in ['nmap_quick', 'nmap_full'] and self.enhanced_mode:
+                enhanced_note = " (SYN scan + OS detection)"
+            elif attack == 'nmap_udp' and not self.enhanced_mode:
+                enhanced_note = " (will be skipped - requires sudo)"
+            elif attack == 'nmap_udp' and self.enhanced_mode:
+                enhanced_note = " (UDP scan enabled)"
+            print(f"  • {attack.replace('_', ' ').title()}{enhanced_note}")
         
         confirm = input(f"\n{Colors.CYAN}🚀 Start reconnaissance? (y/N): {Colors.END}").strip().lower()
         if confirm in ['y', 'yes']:
@@ -976,15 +1432,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 boxrecon.py                  # Interactive mode
-  python3 boxrecon.py --help          # Show this help
+  python3 boxrecon.py                      # Interactive mode
+  python3 boxrecon.py --enhanced           # Force enhanced mode (sudo)
+  python3 boxrecon.py --standard           # Force standard mode (no sudo)
+  python3 boxrecon.py --skip-disclaimer    # Skip disclaimer for automation
         """
     )
     
     parser.add_argument(
         '--version',
         action='version',
-        version='BoxRecon 1.0.0'
+        version='BoxRecon 2.0.0'
     )
     
     parser.add_argument(
@@ -993,10 +1451,30 @@ Examples:
         help='Skip the ethical use disclaimer (for automated use - you still must use ethically!)'
     )
     
+    # Sudo mode options
+    sudo_group = parser.add_mutually_exclusive_group()
+    sudo_group.add_argument(
+        '--enhanced',
+        action='store_true',
+        help='Force Enhanced Mode (sudo) - enables SYN scans, OS detection, UDP scans'
+    )
+    sudo_group.add_argument(
+        '--standard',
+        action='store_true',
+        help='Force Standard Mode (no sudo) - uses TCP connect scans only'
+    )
+    
     args = parser.parse_args()
     
+    # Determine sudo mode preference
+    sudo_mode = None
+    if args.enhanced:
+        sudo_mode = True
+    elif args.standard:
+        sudo_mode = False
+    
     try:
-        boxrecon = BoxRecon(skip_disclaimer=args.skip_disclaimer)
+        boxrecon = BoxRecon(skip_disclaimer=args.skip_disclaimer, sudo_mode=sudo_mode)
         boxrecon.run()
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}👋 BoxRecon interrupted by user. Goodbye!{Colors.END}")

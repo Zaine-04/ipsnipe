@@ -20,12 +20,14 @@ A user-friendly command-line interface tool designed to facilitate reconnaissanc
 
 - **🎨 Beautiful ASCII Art Interface** - Eye-catching terminal UI with colors
 - **🔍 Automated Reconnaissance** - Run multiple tools with a single command
+- **🔌 Custom Port Ranges** - Flexible port selection (single ports, ranges, or comma-separated)
+- **🧠 Smart Web Detection** - Automatically detects web services and skips HTTP scans when none found
 - **📊 Enhanced Output Formatting** - Results with emoji highlights and better readability
 - **📋 Comprehensive Summary Reports** - Detailed Markdown reports with HTB-specific guidance
 - **⚙️ TOML Configuration** - Customizable settings via config.toml file
 - **⏰ Configurable Timeouts** - 5-minute default timeout with user customization
 - **🎯 HTB-Optimized Wordlists** - Smaller, focused wordlists perfect for HTB machines
-- **🛡️ Input Validation** - IP address validation and error handling
+- **🛡️ Input Validation** - IP address and port range validation with error handling
 - **⚡ Flexible Scanning** - Choose individual tools or run all at once
 - **🕐 Progress Tracking** - Real-time status updates and execution times
 - **🎭 Demo Mode** - Test the interface without running actual scans
@@ -386,7 +388,20 @@ python3 boxrecon.py --skip-disclaimer # Skip ethical disclaimer (for automation)
    🎯 Select attack options (e.g., 1,3,5 or 7 for all): 1,3,5
    ```
 
-4. **Confirm and run:**
+4. **Configure port ranges (for Nmap scans):**
+   ```
+   🔌 Port Range Configuration:
+   Examples:
+     • 80 - Single port
+     • 1-1000 - Port range
+     • 80,443,8080 - Specific ports
+     • 1-65535 - All ports
+     • default - Use default configuration
+   
+   🎯 Enter port range (or 'default'): 1-1000
+   ```
+
+5. **Confirm and run:**
    ```
    📋 Selected attacks:
      • Nmap Quick
@@ -395,6 +410,35 @@ python3 boxrecon.py --skip-disclaimer # Skip ethical disclaimer (for automation)
    
    🚀 Start reconnaissance? (y/N): y
    ```
+
+### Port Range Examples
+
+BoxRecon supports flexible port range configurations:
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| `80` | Single port | Test specific service |
+| `1-1000` | Port range | Quick common port scan |
+| `80,443,8080` | Specific ports | Target known web ports |
+| `1-65535` | All ports | Complete port enumeration |
+| `22,80,443,8080,8443` | Custom list | HTB common ports |
+| `default` | Use config defaults | Quick start |
+
+### Smart Web Service Detection
+
+BoxRecon automatically detects web services and optimizes scans:
+
+- **🔓 Open Port Detection:** Parses Nmap output to identify open ports
+- **🌐 Web Service Recognition:** Detects HTTP/HTTPS services on any port
+- **⏭️ Intelligent Skipping:** Skips web-based scans if no web services found
+- **🎯 Port-Specific Targeting:** Uses detected ports for web enumeration
+
+**Example Output:**
+```
+🔓 Discovered 3 open ports: [22, 80, 443]
+🌐 Detected 2 web services on ports: [80, 443]
+⏭️ Skipping Gobuster - No web services found (if none detected)
+```
 
 ## 📁 Output Structure
 
