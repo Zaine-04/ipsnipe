@@ -17,12 +17,31 @@ from ..ui.colors import Colors
 class DomainManager:
     """Manages domain discovery and /etc/hosts manipulation"""
     
-    def __init__(self, target_ip: str):
+    def __init__(self, target_ip: str, use_sudo: bool = False):
         self.target_ip = target_ip
+        self.use_sudo = use_sudo
         self.discovered_domains = set()
         self.hosts_file = "/etc/hosts"
         self.backup_hosts = None
         self.hosts_entries_added = []
+        
+        # Test sudo availability if use_sudo is enabled
+        if self.use_sudo:
+            self._check_sudo_availability()
+    
+    def _check_sudo_availability(self):
+        """Check if sudo is available and working"""
+        try:
+            # Test sudo access with a simple command
+            result = subprocess.run([
+                'sudo', '-n', 'echo', 'test'
+            ], capture_output=True, text=True, timeout=5)
+            
+            if result.returncode != 0:
+                print(f"{Colors.YELLOW}⚠️  Sudo access may require password prompt for hosts file operations{Colors.END}")
+                print(f"{Colors.CYAN}💡 Consider running ipsnipe with: sudo python ipsnipe.py{Colors.END}")
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Could not verify sudo access: {str(e)}{Colors.END}")
     
     def discover_domains_from_http(self, web_services: List[Dict]) -> List[str]:
         """Discover domain names from HTTP responses and headers"""
@@ -150,13 +169,30 @@ class DomainManager:
         try:
             if os.path.exists(self.hosts_file):
                 backup_path = f"{self.hosts_file}.ipsnipe.backup"
-                shutil.copy2(self.hosts_file, backup_path)
-                self.backup_hosts = backup_path
-                print(f"{Colors.GREEN}✅ Created hosts file backup: {backup_path}{Colors.END}")
-                return True
+                
+                if self.use_sudo:
+                    # Use sudo for backup operation
+                    result = subprocess.run([
+                        'sudo', 'cp', self.hosts_file, backup_path
+                    ], capture_output=True, text=True)
+                    
+                    if result.returncode == 0:
+                        self.backup_hosts = backup_path
+                        print(f"{Colors.GREEN}✅ Created hosts file backup: {backup_path}{Colors.END}")
+                        return True
+                    else:
+                        print(f"{Colors.RED}❌ Failed to backup hosts file: {result.stderr}{Colors.END}")
+                        return False
+                else:
+                    # Try without sudo first
+                    shutil.copy2(self.hosts_file, backup_path)
+                    self.backup_hosts = backup_path
+                    print(f"{Colors.GREEN}✅ Created hosts file backup: {backup_path}{Colors.END}")
+                    return True
+                    
         except Exception as e:
             print(f"{Colors.RED}❌ Failed to backup hosts file: {str(e)}{Colors.END}")
-        return False
+            return False
     
     def add_domains_to_hosts(self, domains: List[str]) -> bool:
         """Add discovered domains to /etc/hosts file"""
@@ -184,10 +220,60 @@ class DomainManager:
                 print(f"{Colors.YELLOW}ℹ️  All domains already in hosts file{Colors.END}")
                 return True
             
+            if self.use_sudo:
+                # Use sudo to modify hosts file
+                return self._add_entries_with_sudo(new_entries, ipsnipe_marker, current_content)
+            else:
+                # Try direct modification first
+                return self._add_entries_direct(new_entries, ipsnipe_marker, current_content)
+            
+        except Exception as e:
+            print(f"{Colors.RED}❌ Failed to update hosts file: {str(e)}{Colors.END}")
+            return False
+    
+    def _add_entries_with_sudo(self, new_entries: List[str], marker: str, current_content: str) -> bool:
+        """Add entries to hosts file using sudo"""
+        try:
+            # Create temporary file with new content
+            temp_file = f"/tmp/ipsnipe_hosts_{os.getpid()}"
+            
+            with open(temp_file, 'w') as f:
+                f.write(current_content)
+                if marker not in current_content:
+                    f.write(f"\n{marker}\n")
+                for entry in new_entries:
+                    f.write(f"{entry}\n")
+            
+            # Use sudo to copy temp file to hosts file
+            result = subprocess.run([
+                'sudo', 'cp', temp_file, self.hosts_file
+            ], capture_output=True, text=True)
+            
+            # Clean up temp file
+            os.remove(temp_file)
+            
+            if result.returncode == 0:
+                print(f"{Colors.GREEN}✅ Added {len(new_entries)} domain(s) to /etc/hosts:{Colors.END}")
+                for entry in new_entries:
+                    print(f"   {Colors.CYAN}{entry}{Colors.END}")
+                return True
+            else:
+                print(f"{Colors.RED}❌ Failed to update hosts file with sudo: {result.stderr}{Colors.END}")
+                self._show_manual_instructions(new_entries)
+                return False
+                
+        except Exception as e:
+            print(f"{Colors.RED}❌ Error using sudo to update hosts file: {str(e)}{Colors.END}")
+            self._show_manual_instructions(new_entries)
+            return False
+    
+    def _add_entries_direct(self, new_entries: List[str], marker: str, current_content: str) -> bool:
+        """Add entries to hosts file directly (without sudo)"""
+        try:
             # Add entries to hosts file
             with open(self.hosts_file, 'a') as f:
-                if ipsnipe_marker not in current_content:
-                    f.write(f"\n{ipsnipe_marker}\n")
+                if marker not in current_content:
+                    f.write(f"\n{marker}\n")
                 for entry in new_entries:
                     f.write(f"{entry}\n")
             
@@ -198,14 +284,18 @@ class DomainManager:
             return True
             
         except PermissionError:
-            print(f"{Colors.RED}❌ Permission denied. Run with sudo to modify /etc/hosts{Colors.END}")
-            print(f"{Colors.YELLOW}💡 Manually add these entries to /etc/hosts:{Colors.END}")
-            for domain in domains:
-                print(f"   {Colors.CYAN}{self.target_ip}\t{domain}{Colors.END}")
+            print(f"{Colors.RED}❌ Permission denied accessing /etc/hosts{Colors.END}")
+            print(f"{Colors.YELLOW}💡 This usually happens when ipsnipe is not run with sudo{Colors.END}")
+            self._show_manual_instructions(new_entries)
             return False
-        except Exception as e:
-            print(f"{Colors.RED}❌ Failed to update hosts file: {str(e)}{Colors.END}")
-            return False
+    
+    def _show_manual_instructions(self, entries: List[str]):
+        """Show manual instructions for adding hosts entries"""
+        print(f"{Colors.YELLOW}📝 Manual hosts file update required:{Colors.END}")
+        print(f"{Colors.CYAN}   sudo nano /etc/hosts{Colors.END}")
+        print(f"{Colors.YELLOW}   Add these lines:{Colors.END}")
+        for entry in entries:
+            print(f"   {Colors.CYAN}{entry}{Colors.END}")
     
     def verify_domain_resolution(self, domains: List[str]) -> List[str]:
         """Verify that domains resolve to the target IP"""
@@ -261,31 +351,87 @@ class DomainManager:
             if self.hosts_entries_added:
                 print(f"{Colors.YELLOW}🧹 Cleaning up hosts file entries...{Colors.END}")
                 
-                with open(self.hosts_file, 'r') as f:
-                    lines = f.readlines()
-                
-                # Remove ipsnipe entries
-                filtered_lines = []
-                skip_next = False
-                
-                for line in lines:
-                    if "# ipsnipe entries" in line:
-                        skip_next = True
-                        continue
-                    if skip_next and any(entry.strip() in line.strip() for entry in self.hosts_entries_added):
-                        continue
-                    skip_next = False
-                    filtered_lines.append(line)
-                
-                with open(self.hosts_file, 'w') as f:
-                    f.writelines(filtered_lines)
-                
-                print(f"{Colors.GREEN}✅ Cleaned up hosts file{Colors.END}")
+                if self.use_sudo:
+                    self._cleanup_with_sudo()
+                else:
+                    self._cleanup_direct()
                 
         except Exception as e:
             print(f"{Colors.YELLOW}⚠️  Could not clean up hosts file: {str(e)}{Colors.END}")
             if self.backup_hosts:
-                print(f"{Colors.CYAN}💡 Restore from backup: sudo cp {self.backup_hosts} {self.hosts_file}{Colors.END}")
+                restore_cmd = f"sudo cp {self.backup_hosts} {self.hosts_file}" if self.use_sudo else f"cp {self.backup_hosts} {self.hosts_file}"
+                print(f"{Colors.CYAN}💡 Restore from backup: {restore_cmd}{Colors.END}")
+    
+    def _cleanup_with_sudo(self):
+        """Clean up hosts file using sudo"""
+        try:
+            # Read current hosts file
+            with open(self.hosts_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Remove ipsnipe entries
+            filtered_lines = []
+            skip_next = False
+            
+            for line in lines:
+                if "# ipsnipe entries" in line:
+                    skip_next = True
+                    continue
+                if skip_next and any(entry.strip() in line.strip() for entry in self.hosts_entries_added):
+                    continue
+                skip_next = False
+                filtered_lines.append(line)
+            
+            # Write to temp file
+            temp_file = f"/tmp/ipsnipe_hosts_cleanup_{os.getpid()}"
+            with open(temp_file, 'w') as f:
+                f.writelines(filtered_lines)
+            
+            # Use sudo to copy temp file to hosts file
+            result = subprocess.run([
+                'sudo', 'cp', temp_file, self.hosts_file
+            ], capture_output=True, text=True)
+            
+            # Clean up temp file
+            os.remove(temp_file)
+            
+            if result.returncode == 0:
+                print(f"{Colors.GREEN}✅ Cleaned up hosts file{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️  Could not clean up hosts file: {result.stderr}{Colors.END}")
+                
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Error during sudo cleanup: {str(e)}{Colors.END}")
+    
+    def _cleanup_direct(self):
+        """Clean up hosts file directly"""
+        try:
+            with open(self.hosts_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Remove ipsnipe entries
+            filtered_lines = []
+            skip_next = False
+            
+            for line in lines:
+                if "# ipsnipe entries" in line:
+                    skip_next = True
+                    continue
+                if skip_next and any(entry.strip() in line.strip() for entry in self.hosts_entries_added):
+                    continue
+                skip_next = False
+                filtered_lines.append(line)
+            
+            with open(self.hosts_file, 'w') as f:
+                f.writelines(filtered_lines)
+            
+            print(f"{Colors.GREEN}✅ Cleaned up hosts file{Colors.END}")
+            
+        except PermissionError:
+            print(f"{Colors.YELLOW}⚠️  Permission denied cleaning up hosts file{Colors.END}")
+            print(f"{Colors.CYAN}💡 Manual cleanup: sudo nano /etc/hosts (remove ipsnipe entries){Colors.END}")
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Error during cleanup: {str(e)}{Colors.END}")
     
     def restore_hosts_backup(self):
         """Restore hosts file from backup"""
