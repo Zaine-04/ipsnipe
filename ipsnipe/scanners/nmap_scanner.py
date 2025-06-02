@@ -125,39 +125,70 @@ class NmapScanner:
             with open(output_file, 'r') as f:
                 content = f.read()
             
-            # Pattern to match open ports from Nmap output
-            # Matches lines like: "80/tcp   open  http"
-            port_pattern = r'(\d+)/(tcp|udp)\s+open\s+(\S+)'
-            matches = re.findall(port_pattern, content, re.IGNORECASE)
+            print(f"{Colors.BLUE}🔍 Parsing nmap output for port detection...{Colors.END}")
+            
+            # Multiple patterns to catch different nmap output formats
+            patterns = [
+                r'(\d+)/(tcp|udp)\s+open\s+(\S+)',  # Standard format: "80/tcp   open  http"
+                r'(\d+)/(tcp|udp)\s+open\s+(\S+.*)',  # With additional info
+                r'PORT\s+STATE\s+SERVICE.*?(\d+)/(tcp|udp)\s+open\s+(\S+)',  # Table format
+            ]
+            
+            all_matches = []
+            for pattern in patterns:
+                matches = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
+                all_matches.extend(matches)
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_matches = []
+            for match in all_matches:
+                if len(match) >= 3:
+                    key = (match[0], match[1])
+                    if key not in seen:
+                        seen.add(key)
+                        unique_matches.append(match)
             
             newly_found_ports = []
             newly_found_web_ports = []
             
-            for port_num, protocol, service in matches:
-                port = int(port_num)
-                
-                # Add to open ports if not already there
-                if port not in self.open_ports:
-                    self.open_ports.append(port)
-                    newly_found_ports.append(port)
-                
-                # Check if it's a web service
-                web_services = [
-                    'http', 'https', 'http-proxy', 'http-alt', 'https-alt',
-                    'ssl/http', 'ssl/https', 'nginx', 'apache', 'lighttpd',
-                    'tomcat', 'jetty', 'websphere', 'weblogic', 'iis'
-                ]
-                
-                common_web_ports = [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000]
-                
-                is_web_service = (
-                    any(web_srv in service.lower() for web_srv in web_services) or
-                    port in common_web_ports
-                )
-                
-                if is_web_service and port not in self.web_ports:
-                    self.web_ports.append(port)
-                    newly_found_web_ports.append(port)
+            print(f"{Colors.YELLOW}📝 Raw matches found: {len(unique_matches)}{Colors.END}")
+            
+            for match in unique_matches:
+                if len(match) >= 3:
+                    port_num, protocol, service = match[0], match[1], match[2]
+                    port = int(port_num)
+                    
+                    print(f"{Colors.CYAN}   Port {port}/{protocol} -> {service}{Colors.END}")
+                    
+                    # Add to open ports if not already there
+                    if port not in self.open_ports:
+                        self.open_ports.append(port)
+                        newly_found_ports.append(port)
+                    
+                    # Enhanced web service detection
+                    web_services = [
+                        'http', 'https', 'http-proxy', 'http-alt', 'https-alt',
+                        'ssl/http', 'ssl/https', 'nginx', 'apache', 'lighttpd',
+                        'tomcat', 'jetty', 'websphere', 'weblogic', 'iis',
+                        'httpd', 'www', 'web', 'ssl', 'tls'
+                    ]
+                    
+                    # Common web ports (always consider these as web services)
+                    common_web_ports = [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000, 8008, 8181, 8888, 9090]
+                    
+                    # More aggressive web service detection
+                    is_web_service = (
+                        port in common_web_ports or  # Always consider common web ports
+                        any(web_srv in service.lower() for web_srv in web_services) or
+                        'ssl' in service.lower() or  # SSL often indicates HTTPS
+                        service.lower() in ['unknown', 'tcpwrapped']  # Unknown services on web ports
+                    )
+                    
+                    if is_web_service and port not in self.web_ports:
+                        self.web_ports.append(port)
+                        newly_found_web_ports.append(port)
+                        print(f"{Colors.GREEN}   → Classified as web service{Colors.END}")
             
             # Sort the lists
             self.open_ports.sort()
@@ -169,12 +200,22 @@ class NmapScanner:
             
             if newly_found_web_ports:
                 print(f"{Colors.CYAN}🌐 Identified {len(newly_found_web_ports)} web service(s): {newly_found_web_ports}{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️  No web services detected from nmap output{Colors.END}")
+                print(f"{Colors.CYAN}💡 Web scanners will be skipped. Run manual tests if you suspect web services.{Colors.END}")
             
             # Advanced parsing for additional info
             self._parse_advanced_nmap_info(content)
             
         except Exception as e:
             print(f"{Colors.YELLOW}⚠️  Could not parse Nmap output for port detection: {e}{Colors.END}")
+            # Fallback: if we can't parse, assume common web ports are web services
+            if 80 in self.open_ports and 80 not in self.web_ports:
+                self.web_ports.append(80)
+                print(f"{Colors.YELLOW}🔄 Fallback: Adding port 80 as web service{Colors.END}")
+            if 443 in self.open_ports and 443 not in self.web_ports:
+                self.web_ports.append(443)
+                print(f"{Colors.YELLOW}🔄 Fallback: Adding port 443 as web service{Colors.END}")
     
     def _parse_advanced_nmap_info(self, content: str) -> None:
         """Parse additional information from Nmap output"""
@@ -208,4 +249,57 @@ class NmapScanner:
     
     def has_web_services(self) -> bool:
         """Check if any web services were discovered"""
-        return len(self.web_ports) > 0 
+        return len(self.web_ports) > 0
+    
+    def force_add_web_ports(self, ports: List[int]) -> None:
+        """Manually add ports as web services (useful for edge cases)"""
+        for port in ports:
+            if port in self.open_ports and port not in self.web_ports:
+                self.web_ports.append(port)
+                print(f"{Colors.GREEN}🔧 Manually added port {port} as web service{Colors.END}")
+        self.web_ports.sort()
+    
+    def detect_web_services_by_response(self, target_ip: str) -> None:
+        """Try to detect web services by actually testing HTTP/HTTPS responses"""
+        import subprocess
+        
+        print(f"{Colors.YELLOW}🔍 Testing open ports for web services...{Colors.END}")
+        
+        potential_web_ports = []
+        for port in self.open_ports[:10]:  # Test up to 10 ports
+            # Test HTTP
+            try:
+                result = subprocess.run([
+                    'curl', '-s', '-I', '--max-time', '3', '--connect-timeout', '2',
+                    f'http://{target_ip}:{port}'
+                ], capture_output=True, text=True, timeout=5)
+                
+                if result.returncode == 0 and 'HTTP/' in result.stdout:
+                    potential_web_ports.append(port)
+                    print(f"{Colors.GREEN}   HTTP response on port {port}{Colors.END}")
+            except:
+                pass
+            
+            # Test HTTPS
+            try:
+                result = subprocess.run([
+                    'curl', '-s', '-I', '--max-time', '3', '--connect-timeout', '2', '-k',
+                    f'https://{target_ip}:{port}'
+                ], capture_output=True, text=True, timeout=5)
+                
+                if result.returncode == 0 and 'HTTP/' in result.stdout:
+                    if port not in potential_web_ports:
+                        potential_web_ports.append(port)
+                        print(f"{Colors.GREEN}   HTTPS response on port {port}{Colors.END}")
+            except:
+                pass
+        
+        # Add detected web ports
+        for port in potential_web_ports:
+            if port not in self.web_ports:
+                self.web_ports.append(port)
+        
+        self.web_ports.sort()
+        
+        if potential_web_ports:
+            print(f"{Colors.CYAN}🌐 Detected web services by response testing: {potential_web_ports}{Colors.END}") 

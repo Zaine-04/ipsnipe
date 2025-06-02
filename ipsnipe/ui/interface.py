@@ -185,14 +185,15 @@ to use this tool in a legal and ethical manner only.{Colors.END}
             '1': ('nmap_quick', '🔍 Nmap Quick Scan', 'Fast port discovery and service detection'),
             '2': ('nmap_full', '🔎 Nmap Full Scan', 'Comprehensive port scan with scripts'),
             '3': ('nmap_udp', '📡 Nmap UDP Scan', 'UDP port discovery (requires sudo)'),
-            '4': ('gobuster_common', '🌐 Gobuster Common', 'Web directory enumeration (common wordlist)'),
-            '5': ('gobuster_big', '🌍 Gobuster Big', 'Web directory enumeration (large wordlist)'),
-            '6': ('feroxbuster', '🦀 Feroxbuster', 'Fast recursive web content discovery'),
-            '7': ('ffuf', '💨 FFUF', 'Fast web fuzzer for content discovery'),
-            '8': ('nikto', '🔬 Nikto', 'Web vulnerability scanner'),
-            '9': ('whatweb', '🕸️  WhatWeb', 'Web technology fingerprinting'),
-            '10': ('theharvester', '📧 theHarvester', 'Email and subdomain enumeration'),
-            '11': ('dnsrecon', '🌐 DNSRecon', 'DNS enumeration and reconnaissance')
+            '4': ('web_detect', '🌐 Web Service Detection', 'Direct HTTP/HTTPS service detection'),
+            '5': ('gobuster_common', '📁 Gobuster Common', 'Web directory enumeration (common wordlist)'),
+            '6': ('gobuster_big', '📂 Gobuster Big', 'Web directory enumeration (large wordlist)'),
+            '7': ('feroxbuster', '🦀 Feroxbuster', 'Fast recursive web content discovery'),
+            '8': ('ffuf', '💨 FFUF', 'Fast web fuzzer for content discovery'),
+            '9': ('nikto', '🔬 Nikto', 'Web vulnerability scanner'),
+            '10': ('whatweb', '🕸️  WhatWeb', 'Web technology fingerprinting'),
+            '11': ('theharvester', '📧 theHarvester', 'Email and subdomain enumeration'),
+            '12': ('dnsrecon', '🌐 DNSRecon', 'DNS enumeration and reconnaissance')
         }
         
         print(f"\n{Colors.BOLD}Available reconnaissance modules:{Colors.END}")
@@ -206,8 +207,9 @@ to use this tool in a legal and ethical manner only.{Colors.END}
         
         print(f"\n{Colors.BOLD}Quick selections:{Colors.END}")
         print(f"  {Colors.GREEN}🚀 all{Colors.END} - Run all available modules")
-        print(f"  {Colors.BLUE}🌐 web{Colors.END} - Run all web-related scans (4-9)")
+        print(f"  {Colors.BLUE}🌐 web{Colors.END} - Run all web-related scans (5-10)")
         print(f"  {Colors.PURPLE}🔍 nmap{Colors.END} - Run all Nmap scans (1-3)")
+        print(f"  {Colors.CYAN}🎯 basic{Colors.END} - Run essential scans (1,4,9,10)")
         
         while True:
             selection = input(f"\n{Colors.CYAN}Select modules (comma-separated, e.g., 1,2,4 or 'all'): {Colors.END}").strip()
@@ -225,6 +227,8 @@ to use this tool in a legal and ethical manner only.{Colors.END}
                     selected_attacks = ['gobuster_common', 'gobuster_big', 'feroxbuster', 'ffuf', 'nikto', 'whatweb']
                 elif selection.lower() == 'nmap':
                     selected_attacks = ['nmap_quick', 'nmap_full', 'nmap_udp']
+                elif selection.lower() == 'basic':
+                    selected_attacks = ['nmap_quick', 'web_detect', 'nikto', 'whatweb']
                 else:
                     # Parse individual selections
                     choices = [choice.strip() for choice in selection.split(',')]

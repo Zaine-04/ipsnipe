@@ -27,10 +27,12 @@ A user-friendly CLI tool for automated penetration testing and reconnaissance. I
 - **Progress Tracking** - Real-time status updates with execution times and success/failure indicators
 
 ### 🌐 **Smart Web Service Detection**
+- **Multi-Method Detection** - Uses nmap parsing + standalone HTTP/HTTPS testing for maximum coverage
 - **Automatic Port Discovery** - Parses Nmap output to identify open ports and services
-- **Web Service Recognition** - Detects HTTP/HTTPS services on any port (not just 80/443)
+- **Standalone Web Detection** - Direct HTTP/HTTPS testing that bypasses nmap entirely
 - **Responsive Port Testing** - Tests web ports for actual content and prioritizes active services
-- **Intelligent Skipping** - Automatically skips web-based scans when no web services are detected
+- **HTB-Optimized Logic** - Handles edge cases like "tcpwrapped" services on port 80
+- **Intelligent Fallback** - Multiple detection methods ensure web services aren't missed
 - **Protocol Detection** - Determines HTTP vs HTTPS and uses appropriate scanning parameters
 
 ### 🔐 **Enhanced/Standard Scanning Modes**
@@ -96,6 +98,7 @@ A user-friendly CLI tool for automated penetration testing and reconnaissance. I
 | Tool | Purpose | Enhanced Mode |
 |------|---------|---------------|
 | **Nmap** | Port/Service scanning | SYN scans, OS detection, UDP |
+| **Web Detection** | Direct HTTP/HTTPS testing | Built-in (uses curl) |
 | **Gobuster/Feroxbuster/ffuf** | Directory enumeration | - |
 | **Nikto** | Web vulnerability scanning | - |
 | **WhatWeb** | Technology detection | - |
@@ -140,9 +143,17 @@ python3 ipsnipe.py
 
 1. **Enter target IP** (e.g., `10.10.10.123`)
 2. **Choose scan mode** (Enhanced with sudo or Standard)
-3. **Select tools** (individual or all)
+3. **Select tools** (individual, all, web, nmap, or basic)
 4. **Configure ports** for Nmap (single, range, or comma-separated)
 5. **Start reconnaissance**
+
+### Scan Selection Options
+```bash
+🚀 all     # Run all available modules (1-12)
+🌐 web     # Run all web-related scans (5-10)
+🔍 nmap    # Run all Nmap scans (1-3)
+🎯 basic   # Run essential scans (1,4,9,10) - Perfect for HTB!
+```
 
 ### Port Range Examples
 ```bash
@@ -168,6 +179,26 @@ Ctrl+C                # Emergency termination (immediate stop)
 - **Time Saving** - Skip slow scans if you find what you need
 - **Flexible Workflow** - Adapt scanning strategy based on initial results
 
+### Web Service Detection
+ipsnipe uses multiple methods to ensure web services are never missed:
+
+```bash
+# Method 1: Enhanced nmap parsing
+✅ Detects "tcpwrapped" services on port 80 as web services
+✅ Handles various nmap output formats
+
+# Method 2: Standalone web detection (Option 4)
+✅ Direct HTTP/HTTPS testing using curl
+✅ Works independently of nmap results  
+✅ Perfect for HTB machines
+
+# Method 3: Automatic fallback
+✅ Tests common web ports if nmap parsing fails
+✅ Seamlessly integrates detected services
+```
+
+**Perfect for HTB:** Use the "basic" scan option (1,4,9,10) for reliable web detection!
+
 ### Enhanced vs Standard Mode
 
 | Feature | Enhanced (sudo) | Standard |
@@ -185,7 +216,8 @@ Creates organized directories with detailed reports:
 ```
 ipsnipe_10.10.10.123_20241201_143022/
 ├── SUMMARY_REPORT.md      # Overview with analysis tips
-├── nmap_quick.txt         # Port scan results
+├── nmap_quick.txt         # Port scan results  
+├── web_detection.txt      # Web service detection results
 ├── gobuster_common.txt    # Directory enumeration
 ├── nikto.txt             # Web vulnerabilities
 └── whatweb.txt           # Technology stack
@@ -219,12 +251,14 @@ sudo service networking restart
 ### Tool Installation
 ```bash
 # Ubuntu/Debian
-sudo apt install nmap gobuster nikto dnsrecon ffuf ruby
+sudo apt install nmap gobuster nikto dnsrecon ffuf ruby curl
 sudo gem install whatweb
 
 # macOS
-brew install nmap gobuster nikto feroxbuster ffuf ruby
+brew install nmap gobuster nikto feroxbuster ffuf ruby curl
 gem install whatweb
+
+# Note: curl is typically pre-installed on most systems
 ```
 
 ## ⚖️ Legal & Ethical Use

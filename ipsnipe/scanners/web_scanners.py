@@ -21,8 +21,11 @@ class WebScanners:
         """Determine if web scan should run based on available web ports"""
         if not web_ports:
             print(f"{Colors.YELLOW}⏭️  Skipping {scan_type} - No web services detected{Colors.END}")
-            print(f"{Colors.CYAN}💡 Run Nmap scan first to detect web services{Colors.END}")
+            print(f"{Colors.CYAN}💡 Common web ports (80, 443) may not have been identified as web services{Colors.END}")
+            print(f"{Colors.CYAN}💡 Try running whatweb or nikto manually if you suspect web services{Colors.END}")
             return False
+        
+        print(f"{Colors.GREEN}🌐 Running {scan_type} on web ports: {web_ports}{Colors.END}")
         return True
     
     def test_web_port_responsiveness(self, target_ip: str, port: int) -> dict:

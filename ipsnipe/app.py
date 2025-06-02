@@ -11,6 +11,7 @@ from .ui.colors import Colors, print_banner
 from .ui.interface import UserInterface
 from .core.scanner_core import ScannerCore
 from .scanners import NmapScanner, WebScanners, DNSScanner
+from .scanners.web_detection import WebDetector
 from .core.report_generator import ReportGenerator
 
 
@@ -34,6 +35,7 @@ class IPSnipeApp:
         self.nmap_scanner = None  # Will be initialized after enhanced_mode is set
         self.web_scanners = None
         self.dns_scanner = None
+        self.web_detector = WebDetector()
         self.report_generator = None
         
         # Port tracking
@@ -81,6 +83,12 @@ class IPSnipeApp:
                 self.open_ports.extend(self.nmap_scanner.get_open_ports())
                 self.web_ports.extend(self.nmap_scanner.get_web_ports())
                 
+                # If no web services detected but we have common web ports, try response testing
+                if not self.nmap_scanner.get_web_ports() and any(p in [80, 443, 8080, 8443] for p in self.nmap_scanner.get_open_ports()):
+                    print(f"{Colors.YELLOW}🔍 No web services detected by nmap, trying response testing...{Colors.END}")
+                    self.nmap_scanner.detect_web_services_by_response(self.target_ip)
+                    self.web_ports.extend(self.nmap_scanner.get_web_ports())
+                
             elif attack == 'nmap_full':
                 self.results[attack] = self.nmap_scanner.full_scan(
                     self.target_ip, self.run_command, port_range
@@ -88,6 +96,12 @@ class IPSnipeApp:
                 # Update port tracking
                 self.open_ports.extend(self.nmap_scanner.get_open_ports())
                 self.web_ports.extend(self.nmap_scanner.get_web_ports())
+                
+                # If no web services detected but we have common web ports, try response testing
+                if not self.nmap_scanner.get_web_ports() and any(p in [80, 443, 8080, 8443] for p in self.nmap_scanner.get_open_ports()):
+                    print(f"{Colors.YELLOW}🔍 No web services detected by nmap, trying response testing...{Colors.END}")
+                    self.nmap_scanner.detect_web_services_by_response(self.target_ip)
+                    self.web_ports.extend(self.nmap_scanner.get_web_ports())
                 
             elif attack == 'nmap_udp':
                 self.results[attack] = self.nmap_scanner.udp_scan(
@@ -136,6 +150,57 @@ class IPSnipeApp:
                 self.results[attack] = self.dns_scanner.dnsrecon_scan(
                     self.target_ip, self.run_command
                 )
+                
+            elif attack == 'web_detect':
+                print(f"{Colors.YELLOW}🔍 Running standalone web service detection...{Colors.END}")
+                web_result = self.web_detector.quick_web_check(self.target_ip, self.open_ports)
+                
+                if web_result['has_web_services']:
+                    # Add detected web ports to our tracking
+                    for port in web_result['web_ports']:
+                        if port not in self.web_ports:
+                            self.web_ports.append(port)
+                    
+                    # Create a summary report
+                    output_file = f"{self.output_dir}/web_detection.txt"
+                    with open(output_file, 'w') as f:
+                        f.write("=" * 80 + "\n")
+                        f.write("ipsnipe Web Service Detection Report\n")
+                        f.write("=" * 80 + "\n\n")
+                        f.write(f"Target: {self.target_ip}\n")
+                        f.write(f"Detected Web Services: {len(web_result['services'])}\n")
+                        f.write(f"Web Ports: {web_result['web_ports']}\n\n")
+                        
+                        for service in web_result['services']:
+                            f.write(f"Port {service['port']} ({service['protocol'].upper()}):\n")
+                            f.write(f"  URL: {service['url']}\n")
+                            f.write(f"  Status: {service['status_code']}\n")
+                            f.write(f"  Server: {service['server']}\n")
+                            if service.get('technologies'):
+                                f.write(f"  Technologies: {', '.join(service['technologies'])}\n")
+                            f.write("\n")
+                        
+                        if web_result['technologies']:
+                            f.write("Detected Technologies:\n")
+                            for tech in web_result['technologies']:
+                                f.write(f"  - {tech}\n")
+                    
+                    self.results[attack] = {
+                        'status': 'success',
+                        'output_file': output_file,
+                        'web_services_found': len(web_result['services']),
+                        'web_ports': web_result['web_ports']
+                    }
+                    
+                    print(f"{Colors.GREEN}✅ Web detection completed - Found {len(web_result['services'])} web service(s){Colors.END}")
+                    if web_result['best_target'][0]:
+                        print(f"{Colors.CYAN}🎯 Best target: {web_result['best_target'][0]}{Colors.END}")
+                else:
+                    self.results[attack] = {
+                        'status': 'failed',
+                        'reason': 'No web services detected'
+                    }
+                    print(f"{Colors.YELLOW}⚠️  No web services detected on target{Colors.END}")
             
             # Show results status and handle user quit
             if attack in self.results:

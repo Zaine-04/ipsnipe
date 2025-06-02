@@ -94,6 +94,7 @@ CORE_TOOLS=(
     "gobuster:gobuster" 
     "nikto:nikto"
     "dnsrecon:dnsrecon"
+    "curl:curl"
 )
 
 # Advanced tools (optional but recommended)
