@@ -3,6 +3,9 @@
 # 📋  Complete Configuration Reference for HTB Box Reconnaissance
 # =====================================================================================
 # 
+# 🎯 THIS IS THE SINGLE SOURCE OF CONFIGURATION FOR IPSNIPE
+# 📝 To customize ipsnipe, ONLY modify this file - do NOT edit the Python code!
+# 
 # This file controls how ipsnipe behaves during reconnaissance scans.
 # All settings have been optimized for CTF environments like Hack The Box (HTB).
 # 
@@ -422,10 +425,27 @@ match_codes = "200,204,301,302,307,401,403"
 # 📏 Filter responses by size (leave empty to see all)
 # Example: "1234" would hide responses that are exactly 1234 bytes
 # Useful for hiding error pages that are all the same size
+# Common values: "178" for default nginx, "315" for Apache default
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: filter_size = ""                                            │
+# │ MODIFY THIS VALUE: filter_size = "178"                                         │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-filter_size = ""
+filter_size = "178"
+
+# 🌐 FFUF scanning method
+# "vhost" = Virtual host enumeration (curl -H "Host: FUZZ.domain.htb" http://IP)
+# "subdomain" = Subdomain enumeration (curl http://FUZZ.domain.htb)
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: method = "vhost"                                            │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+method = "vhost"
+
+# 📋 FFUF Wordlist (specifically for subdomain/vhost enumeration)
+# This should be a subdomain-focused wordlist, not directory names
+# Standard HTB/Kali location for subdomain wordlists
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: wordlist = "/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt" │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+wordlist = "/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt"
 
 # =====================================================================================
 # 🕷️ NIKTO SETTINGS - Web Vulnerability Scanner
@@ -543,6 +563,25 @@ include_execution_time = true
 # └─────────────────────────────────────────────────────────────────────────────────┘
 include_file_sizes = true
 
+# =====================================================================================
+# ⚙️ CONFIGURATION MANAGEMENT
+# =====================================================================================
+#
+# 🎯 IMPORTANT: This config.toml file is the ONLY place you should modify settings!
+#    • ipsnipe/core/config.py contains only minimal fallback defaults
+#    • All your customizations should be made here in config.toml
+#    • The Python code automatically loads settings from this file
+#
+# 🔄 How it works:
+#    1. ipsnipe loads basic defaults from config.py
+#    2. Then it reads config.toml and overrides defaults with your settings
+#    3. Result: Your config.toml settings take priority over everything else
+#
+# 💡 This means you can:
+#    • Modify any setting in this file and it will take effect immediately
+#    • Add new settings here and they'll be available to the scanners
+#    • Remove settings from this file to fall back to defaults
+#
 # =====================================================================================
 # 🎓 BEGINNER TIPS FOR CUSTOMIZING THIS FILE
 # =====================================================================================

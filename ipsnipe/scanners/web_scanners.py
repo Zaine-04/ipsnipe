@@ -161,6 +161,36 @@ class WebScanners:
         # Create minimal wordlist as last resort
         return self.create_minimal_wordlist()
     
+    def get_ffuf_wordlist_path(self) -> str:
+        """Get the path to FFUF-specific wordlist (subdomain-focused)"""
+        ffuf_config = self.config['ffuf']
+        
+        # Use FFUF-specific wordlist if configured
+        if 'wordlist' in ffuf_config:
+            wordlist_path = ffuf_config['wordlist']
+            if Path(wordlist_path).exists():
+                print(f"{Colors.GREEN}📋 Using FFUF subdomain wordlist: {wordlist_path}{Colors.END}")
+                return wordlist_path
+        
+        # Fallback to subdomain-specific wordlists
+        subdomain_fallback_paths = [
+            '/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt',
+            '/usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt',
+            '/usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt',
+            '/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt',
+            '/usr/share/wordlists/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt',
+            '/opt/SecLists/Discovery/DNS/bitquark-subdomains-top100000.txt'
+        ]
+        
+        for path in subdomain_fallback_paths:
+            if Path(path).exists():
+                print(f"{Colors.YELLOW}⚠️  Using fallback FFUF subdomain wordlist: {path}{Colors.END}")
+                return path
+        
+        # If no subdomain wordlists found, fall back to directory wordlists
+        print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using directory wordlist for FFUF{Colors.END}")
+        return self.get_wordlist_path('common')
+    
     def create_minimal_wordlist(self) -> str:
         """Create a minimal wordlist if none are found"""
         minimal_wordlist = [
@@ -265,44 +295,94 @@ class WebScanners:
         return run_command_func(command, 'feroxbuster.txt', 'Feroxbuster Directory Scan', 'feroxbuster')
     
     def ffuf_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run FFUF subdomain enumeration scan"""
-        # For subdomain enumeration, we need a domain name, not just an IP
-        if not hasattr(self, 'primary_domain') or not self.primary_domain:
-            print(f"{Colors.YELLOW}⏭️  Skipping FFUF Subdomain Scan - No domain name available{Colors.END}")
-            print(f"{Colors.CYAN}💡 FFUF subdomain enumeration requires a domain name (e.g., example.htb){Colors.END}")
-            print(f"{Colors.CYAN}💡 Domain discovery must run first to identify the target domain{Colors.END}")
-            return {'status': 'skipped', 'reason': 'No domain name available for subdomain enumeration'}
-        
+        """Run FFUF scan (virtual host or subdomain enumeration)"""
         ffuf_config = self.config['ffuf']
-        wordlist_path = self.get_wordlist_path('common')  # This will use the subdomain wordlist
+        method = ffuf_config.get('method', 'vhost')  # Default to virtual host method
         
-        # Extract base domain from primary domain (e.g., app.example.htb -> example.htb)
-        domain_parts = self.primary_domain.split('.')
-        if len(domain_parts) >= 2:
-            base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
+        # Choose wordlist based on method
+        if method == 'vhost':
+            # Virtual host enumeration - can work with just IP
+            # Use FFUF-specific wordlist (subdomain-focused)
+            wordlist_path = self.get_ffuf_wordlist_path()
+            
+            if not self.should_run_web_scan('FFUF Virtual Host', web_ports):
+                return {'status': 'skipped', 'reason': 'No web services detected'}
+            
+            port, base_url = self.get_best_web_port(target_ip, web_ports)
+            if not base_url:
+                return {'status': 'failed', 'reason': 'No responsive web services found'}
+            
+            # Extract domain from primary_domain if available, otherwise use a default
+            if hasattr(self, 'primary_domain') and self.primary_domain:
+                domain_parts = self.primary_domain.split('.')
+                if len(domain_parts) >= 2:
+                    base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
+                else:
+                    base_domain = self.primary_domain
+            else:
+                # No domain discovered yet - ask user or use common patterns
+                print(f"{Colors.YELLOW}⚠️  No domain discovered yet. FFUF Virtual Host enumeration works best with a known domain.{Colors.END}")
+                print(f"{Colors.CYAN}💡 Consider running domain discovery first, or manually specify domain like 'planning.htb'{Colors.END}")
+                # For now, use a placeholder that user can modify
+                base_domain = "target.htb"
+            
+            print(f"{Colors.GREEN}🌐 Running FFUF Virtual Host enumeration on: {target_ip} (testing {base_domain} subdomains){Colors.END}")
+            
+            command = [
+                'ffuf',
+                '-u', f"http://{target_ip}",  # Target the IP directly
+                '-H', f"Host: FUZZ.{base_domain}",  # Use Host header for virtual host enumeration
+                '-w', wordlist_path,
+                '-t', str(ffuf_config['threads']),
+                '-timeout', str(ffuf_config['timeout']),
+                '-mc', ffuf_config['match_codes'],
+                '-s'  # Silent mode
+            ]
+            
+            scan_description = f'FFUF Virtual Host Enumeration (Host: FUZZ.{base_domain})'
+            
         else:
-            base_domain = self.primary_domain
+            # Subdomain enumeration - requires domain name
+            if not hasattr(self, 'primary_domain') or not self.primary_domain:
+                print(f"{Colors.YELLOW}⏭️  Skipping FFUF Subdomain Scan - No domain name available{Colors.END}")
+                print(f"{Colors.CYAN}💡 FFUF subdomain enumeration requires a domain name (e.g., example.htb){Colors.END}")
+                print(f"{Colors.CYAN}💡 Domain discovery must run first to identify the target domain{Colors.END}")
+                return {'status': 'skipped', 'reason': 'No domain name available for subdomain enumeration'}
+            
+            wordlist_path = self.get_ffuf_wordlist_path()  # Use FFUF-specific subdomain wordlist
+            
+            # Extract base domain from primary domain (e.g., app.example.htb -> example.htb)
+            domain_parts = self.primary_domain.split('.')
+            if len(domain_parts) >= 2:
+                base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
+            else:
+                base_domain = self.primary_domain
+            
+            print(f"{Colors.GREEN}🌐 Running FFUF subdomain enumeration on: {base_domain}{Colors.END}")
+            
+            command = [
+                'ffuf',
+                '-u', f"http://FUZZ.{base_domain}",  # Subdomain enumeration pattern
+                '-w', wordlist_path,
+                '-t', str(ffuf_config['threads']),
+                '-timeout', str(ffuf_config['timeout']),
+                '-mc', ffuf_config['match_codes'],
+                '-s'  # Silent mode
+            ]
+            
+            scan_description = f'FFUF Subdomain Enumeration (FUZZ.{base_domain})'
         
-        print(f"{Colors.GREEN}🌐 Running FFUF subdomain enumeration on: {base_domain}{Colors.END}")
-        
-        command = [
-            'ffuf',
-            '-u', f"http://FUZZ.{base_domain}",  # Subdomain enumeration pattern
-            '-w', wordlist_path,
-            '-t', str(ffuf_config['threads']),
-            '-timeout', str(ffuf_config['timeout']),
-            '-mc', ffuf_config['match_codes'],
-            '-s'  # Silent mode
-        ]
-        
-        # Add HTTPS variant as well if port 443 is open
-        if 443 in web_ports:
-            print(f"{Colors.CYAN}💡 Will also test HTTPS subdomains{Colors.END}")
-        
+        # Add filter size if specified
         if ffuf_config['filter_size']:
             command.extend(['-fs', ffuf_config['filter_size']])
+            
+        # Add HTTPS support if port 443 is open
+        if 443 in web_ports and method == 'vhost':
+            print(f"{Colors.CYAN}💡 Will also test HTTPS virtual hosts{Colors.END}")
+        elif 443 in web_ports and method == 'subdomain':
+            print(f"{Colors.CYAN}💡 Will also test HTTPS subdomains{Colors.END}")
         
-        return run_command_func(command, 'ffuf_subdomains.txt', 'FFUF Subdomain Enumeration', 'ffuf')
+        return run_command_func(command, 'ffuf_results.txt', scan_description, 'ffuf')
     
     def nikto_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
         """Run Nikto web vulnerability scan"""

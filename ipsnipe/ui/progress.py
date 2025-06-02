@@ -36,7 +36,8 @@ class ProgressBar:
         elapsed = time.time() - self.start_time if self.start_time else 0
         
         # Clear the line and show final status
-        sys.stdout.write('\r' + ' ' * 100 + '\r')  # Clear line
+        sys.stdout.write('\r\033[K')  # Clear line
+        sys.stdout.flush()
         
         if status == "completed":
             print(f"{Colors.GREEN}✅ {self.description} - Completed ({elapsed:.1f}s){Colors.END}")
@@ -82,7 +83,7 @@ class ProgressBar:
                 status_line = (f"\r{Colors.CYAN}{animation_chars[char_index]} "
                              f"{self.description} [{bar}] {time_str}{Colors.END}")
             
-            sys.stdout.write(status_line)
+            sys.stdout.write(f"\r\033[K{status_line}")
             sys.stdout.flush()
             
             char_index = (char_index + 1) % len(animation_chars)
@@ -108,16 +109,16 @@ class ScanProgressIndicator:
         self.thread.start()
     
     def stop(self, status: str = "completed", execution_time: float = None):
-        """Stop the progress indicator"""
+        """Stop the progress indicator and clear the line for next output"""
         self.is_running = False
         if self.thread:
-            self.thread.join(timeout=1)
+            self.thread.join(timeout=0.5)
         
-        # Clear the progress line
-        sys.stdout.write('\r' + ' ' * 120 + '\r')
+        # Clear the progress line completely
+        sys.stdout.write('\r\033[K')
         sys.stdout.flush()
         
-        # Don't print anything here - let the calling function handle the output
+        # Don't print anything here - let the calling function handle status output
     
     def _show_progress(self):
         """Show the progress animation"""
@@ -125,41 +126,52 @@ class ScanProgressIndicator:
         spinner_index = 0
         
         while self.is_running:
-            elapsed = time.time() - self.start_time
-            remaining = max(0, self.timeout - elapsed)
-            
-            # Calculate progress
-            progress = min(elapsed / self.timeout, 1.0)
-            filled = int(self.width * progress)
-            
-            # Create progress bar
-            bar = "█" * filled + "░" * (self.width - filled)
-            
-            # Format time
-            elapsed_mins, elapsed_secs = divmod(int(elapsed), 60)
-            remaining_mins, remaining_secs = divmod(int(remaining), 60)
-            
-            elapsed_str = f"{elapsed_mins:02d}:{elapsed_secs:02d}"
-            remaining_str = f"{remaining_mins:02d}:{remaining_secs:02d}" if remaining > 0 else "00:00"
-            
-            # Show different colors based on progress
-            if progress < 0.7:
-                color = Colors.GREEN
-            elif progress < 0.9:
-                color = Colors.YELLOW
-            else:
-                color = Colors.RED
-            
-            # Build the progress line
-            progress_line = (f"\r{color}{spinner_chars[spinner_index]} "
-                           f"{self.description} [{bar}] "
-                           f"{elapsed_str} / {remaining_str} remaining{Colors.END}")
-            
-            sys.stdout.write(progress_line)
-            sys.stdout.flush()
-            
-            spinner_index = (spinner_index + 1) % len(spinner_chars)
-            time.sleep(0.2)
+            try:
+                elapsed = time.time() - self.start_time
+                remaining = max(0, self.timeout - elapsed)
+                
+                # Calculate progress
+                progress = min(elapsed / self.timeout, 1.0)
+                filled = int(self.width * progress)
+                
+                # Create progress bar
+                bar = "█" * filled + "░" * (self.width - filled)
+                
+                # Format time
+                elapsed_mins, elapsed_secs = divmod(int(elapsed), 60)
+                remaining_mins, remaining_secs = divmod(int(remaining), 60)
+                
+                elapsed_str = f"{elapsed_mins:02d}:{elapsed_secs:02d}"
+                
+                if remaining > 0:
+                    remaining_str = f"{remaining_mins:02d}:{remaining_secs:02d}"
+                    time_display = f"{elapsed_str} / {remaining_str} left"
+                else:
+                    time_display = f"{elapsed_str} / overtime"
+                
+                # Show different colors based on progress
+                if progress < 0.7:
+                    color = Colors.GREEN
+                elif progress < 0.9:
+                    color = Colors.YELLOW
+                else:
+                    color = Colors.RED
+                
+                # Build the progress line - keep it compact
+                short_desc = self.description[:35] + "..." if len(self.description) > 35 else self.description
+                progress_line = (f"{color}{spinner_chars[spinner_index]} "
+                               f"{short_desc:<38} [{bar}] {time_display}{Colors.END}")
+                
+                # Clear line completely and write progress
+                sys.stdout.write(f"\r\033[K{progress_line}")
+                sys.stdout.flush()
+                
+                spinner_index = (spinner_index + 1) % len(spinner_chars)
+                time.sleep(0.2)
+                
+            except Exception:
+                # If anything goes wrong, just break out quietly
+                break
 
 
 def show_loading_dots(message: str, duration: float = 3.0):
@@ -185,5 +197,5 @@ def show_loading_dots(message: str, duration: float = 3.0):
 
 def clear_line():
     """Clear the current line in terminal"""
-    sys.stdout.write('\r' + ' ' * 120 + '\r')
+    sys.stdout.write('\r\033[K')
     sys.stdout.flush() 

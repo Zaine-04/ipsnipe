@@ -59,7 +59,11 @@ class ConfigManager:
     
     @staticmethod
     def get_default_config() -> Dict:
-        """Returns the default configuration"""
+        """Returns the minimal fallback configuration
+        
+        These are only basic defaults used when config.toml is missing or incomplete.
+        ALL USER CONFIGURATION SHOULD BE DONE IN config.toml - NOT HERE!
+        """
         return {
             'general': {
                 'scan_timeout': 600,
@@ -68,68 +72,36 @@ class ConfigManager:
                 'verbose_logging': True
             },
             'wordlists': {
-                'base_dir': '/usr/share/wordlists',
-                'common': '/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt',
-                'small': '/usr/share/wordlists/dirb/common.txt',
-                'medium': '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt',
-                'big': '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt',
-                'custom': '/usr/share/seclists/Discovery/Web-Content/common.txt'
+                'base_dir': '/usr/share/wordlists'
             },
             'nmap': {
                 'quick_ports': '1000',
-                'timing': 'T4',
-                'version_intensity': '5',
-                'enable_os_detection': True,
-                'enable_version_detection': True,
-                'enable_script_scan': True,
-                'udp_ports': 200
+                'timing': 'T4'
             },
             'gobuster': {
-                'extensions': 'php,html,txt,js,css,zip,tar,gz,bak,old',
-                'threads': 50,
-                'timeout': '10s',
-                'follow_redirects': False,
-                'include_length': True,
-                'status_codes': '200,204,301,302,307,401,403'
+                'threads': 50
             },
             'feroxbuster': {
-                'extensions': 'php,html,txt,js,css,zip,tar,gz,bak,old',
-                'threads': 50,
-                'timeout': 10,
-                'depth': 2,
-                'wordlist_size': 'common'
+                'threads': 50
             },
             'ffuf': {
-                'threads': 50,
-                'timeout': 10,
-                'match_codes': '200,204,301,302,307,401,403',
-                'filter_size': ''
+                'threads': 40,
+                'method': 'vhost'
             },
             'nikto': {
-                'format': 'txt',
-                'timeout': 300,
-                'max_scan_time': 300
+                'timeout': 300
             },
             'whatweb': {
-                'verbosity': 'verbose',
                 'aggression': 1
             },
             'theharvester': {
-                'data_source': 'all',
                 'limit': 100
             },
             'dnsrecon': {
-                'record_types': 'std',
                 'threads': 10
             },
             'output': {
-                'max_line_length': 120,
-                'truncate_long_lines': True,
-                'highlight_important': True,
-                'include_timestamps': True,
-                'include_command_details': True,
-                'include_execution_time': True,
-                'include_file_sizes': True
+                'colorize_output': True
             }
         }
     

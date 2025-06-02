@@ -30,6 +30,7 @@ class ScannerCore:
         self.current_process = None
         self.input_queue = queue.Queue()
         self.input_thread = None
+        self.instructions_shown = False
     
     def start_input_monitor(self):
         """Start monitoring for user input to skip scans"""
@@ -140,11 +141,13 @@ class ScannerCore:
         """Execute a command that can be interrupted by user input"""
         timeout = self.config['general']['scan_timeout']
         
+        # Show instructions only once per session
+        if not self.instructions_shown:
+            print(f"{Colors.CYAN}💡 Press 's' + Enter to skip, 'q' + Enter to quit all scans{Colors.END}")
+            self.instructions_shown = True
+        
         # Initialize and start progress indicator
         progress = ScanProgressIndicator(description, timeout)
-        print(f"{Colors.YELLOW}🔄 Starting: {description} (timeout: {timeout//60}min){Colors.END}")
-        print(f"{Colors.CYAN}💡 Press 's' + Enter to skip, 'q' + Enter to quit all scans{Colors.END}")
-        
         progress.start()
         
         self.skip_current_scan = False
@@ -192,12 +195,12 @@ class ScannerCore:
             end_time = time.time()
             execution_time = end_time - start_time
             
-            # Stop progress indicator
-            progress.stop("completed", execution_time)
-            
-            # Get output
+            # Get output first
             stdout, stderr = self.current_process.communicate()
             return_code = self.current_process.returncode
+            
+            # Stop progress indicator cleanly
+            progress.stop("completed", execution_time)
             
             # Format the output content
             formatted_stdout = self.format_output_content(stdout, scan_type)
