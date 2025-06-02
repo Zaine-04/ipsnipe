@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Web scanner implementations for ipsnipe
-Handles gobuster, feroxbuster, ffuf, nikto, and whatweb scanning
+Handles feroxbuster, ffuf, and whatweb scanning
 """
 
 import subprocess
@@ -17,13 +17,14 @@ class WebScanners:
         self.config = config
         self.responsive_web_ports = []
         self.primary_domain = None
+        self.wordlist_manager = None
     
     def should_run_web_scan(self, scan_type: str, web_ports: List[int]) -> bool:
         """Determine if web scan should run based on available web ports"""
         if not web_ports:
             print(f"{Colors.YELLOW}⏭️  Skipping {scan_type} - No web services detected{Colors.END}")
             print(f"{Colors.CYAN}💡 Common web ports (80, 443) may not have been identified as web services{Colors.END}")
-            print(f"{Colors.CYAN}💡 Try running whatweb or nikto manually if you suspect web services{Colors.END}")
+            print(f"{Colors.CYAN}💡 Try running whatweb manually if you suspect web services{Colors.END}")
             return False
         
         print(f"{Colors.GREEN}🌐 Running {scan_type} on web ports: {web_ports}{Colors.END}")
@@ -53,7 +54,7 @@ class WebScanners:
                 result = subprocess.run([
                     'curl', '-s', '-I', '--max-time', '5', '--connect-timeout', '3',
                     '-k',  # Allow insecure SSL
-                    '--user-agent', 'ipsnipe/1.0.5',
+                    '--user-agent', 'ipsnipe/2.1',
                     url
                 ], capture_output=True, text=True, timeout=10)
                 
@@ -85,6 +86,10 @@ class WebScanners:
         """Set the primary domain to use for web scanning"""
         self.primary_domain = domain
         print(f"{Colors.CYAN}🔧 Web scanners will use domain: {domain}{Colors.END}")
+    
+    def set_wordlist_manager(self, wordlist_manager):
+        """Set the wordlist manager for dynamic wordlist selection"""
+        self.wordlist_manager = wordlist_manager
     
     def get_best_web_port(self, target_ip: str, web_ports: List[int]) -> tuple:
         """Get the best responsive web port and URL"""
@@ -191,30 +196,6 @@ class WebScanners:
         print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using directory wordlist for FFUF{Colors.END}")
         return self.get_wordlist_path('common')
     
-    def get_gobuster_wordlist_path(self, scan_type: str = 'common') -> str:
-        """Get the path to a Gobuster-specific wordlist file"""
-        from ..ui.colors import Colors
-        
-        wordlist_config = self.config['wordlists']
-        
-        # Use tool-specific wordlist preferences
-        if scan_type == 'common':
-            wordlist_key = 'gobuster_common'
-        elif scan_type == 'big':
-            wordlist_key = 'gobuster_big'
-        else:
-            wordlist_key = 'gobuster_common'  # Default fallback
-        
-        if wordlist_key in wordlist_config:
-            wordlist_path = wordlist_config[wordlist_key]
-            if Path(wordlist_path).exists():
-                print(f"{Colors.GREEN}📋 Using Gobuster-optimized wordlist: {wordlist_path}{Colors.END}")
-                return wordlist_path
-        
-        # Fallback to generic wordlist selection
-        print(f"{Colors.YELLOW}⚠️  Gobuster-specific wordlist not found, falling back to generic selection{Colors.END}")
-        return self.get_wordlist_path(scan_type)
-    
     def get_ferox_wordlist_path(self, size: str = 'small') -> str:
         """Get the path to a Feroxbuster-specific wordlist file"""
         from ..ui.colors import Colors
@@ -254,73 +235,9 @@ class WebScanners:
         
         print(f"{Colors.YELLOW}⚠️  Created minimal wordlist: {wordlist_path}{Colors.END}")
         return wordlist_path
-    
-    def gobuster_common(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run Gobuster with common wordlist"""
-        if not self.should_run_web_scan('Gobuster Common', web_ports):
-            return {'status': 'skipped', 'reason': 'No web services detected'}
-        
-        port, base_url = self.get_best_web_port(target_ip, web_ports)
-        if not base_url:
-            return {'status': 'failed', 'reason': 'No responsive web services found'}
-        
-        wordlist_path = self.get_gobuster_wordlist_path('common')
-        gobuster_config = self.config['gobuster']
-        
-        command = [
-            'gobuster', 'dir',
-            '-u', base_url,
-            '-w', wordlist_path,
-            '-x', gobuster_config['extensions'],
-            '-t', str(gobuster_config['threads']),
-            '--timeout', gobuster_config['timeout'],
-            '-s', gobuster_config['status_codes'],
-            '-q',  # Quiet mode
-            '--no-error'
-        ]
-        
-        if gobuster_config['include_length']:
-            command.append('-l')
-        
-        if gobuster_config['follow_redirects']:
-            command.append('-r')
-        
-        return run_command_func(command, 'gobuster_common.txt', 'Gobuster Directory Scan (Common)', 'gobuster')
-    
-    def gobuster_big(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run Gobuster with big wordlist"""
-        if not self.should_run_web_scan('Gobuster Big', web_ports):
-            return {'status': 'skipped', 'reason': 'No web services detected'}
-        
-        port, base_url = self.get_best_web_port(target_ip, web_ports)
-        if not base_url:
-            return {'status': 'failed', 'reason': 'No responsive web services found'}
-        
-        wordlist_path = self.get_gobuster_wordlist_path('big')
-        gobuster_config = self.config['gobuster']
-        
-        command = [
-            'gobuster', 'dir',
-            '-u', base_url,
-            '-w', wordlist_path,
-            '-x', gobuster_config['extensions'],
-            '-t', str(gobuster_config['threads']),
-            '--timeout', gobuster_config['timeout'],
-            '-s', gobuster_config['status_codes'],
-            '-q',
-            '--no-error'
-        ]
-        
-        if gobuster_config['include_length']:
-            command.append('-l')
-        
-        if gobuster_config['follow_redirects']:
-            command.append('-r')
-        
-        return run_command_func(command, 'gobuster_big.txt', 'Gobuster Directory Scan (Big)', 'gobuster')
-    
+
     def feroxbuster_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run Feroxbuster scan"""
+        """Run Feroxbuster directory enumeration scan with wordlist selection"""
         if not self.should_run_web_scan('Feroxbuster', web_ports):
             return {'status': 'skipped', 'reason': 'No web services detected'}
         
@@ -329,7 +246,25 @@ class WebScanners:
             return {'status': 'failed', 'reason': 'No responsive web services found'}
         
         ferox_config = self.config['feroxbuster']
-        wordlist_path = self.get_ferox_wordlist_path(ferox_config['wordlist_size'])
+        
+        # Get wordlist using wordlist manager if available, otherwise use default
+        if self.wordlist_manager:
+            try:
+                wordlist_type, wordlist_path = self.wordlist_manager.prompt_wordlist_selection("Feroxbuster directory enumeration")
+            except KeyboardInterrupt:
+                print(f"\n{Colors.YELLOW}⏭️  Skipping Feroxbuster - user cancelled wordlist selection{Colors.END}")
+                return {'status': 'skipped', 'reason': 'User cancelled wordlist selection'}
+        else:
+            # Fallback to default medium wordlist
+            wordlist_path = self.get_ferox_wordlist_path('medium')
+            wordlist_type = 'medium'
+        
+        if not wordlist_path:
+            return {'status': 'failed', 'reason': 'No wordlist available'}
+        
+        print(f"{Colors.GREEN}🦀 Running Feroxbuster directory enumeration{Colors.END}")
+        print(f"{Colors.CYAN}🎯 Target: {base_url}{Colors.END}")
+        print(f"{Colors.CYAN}📋 Wordlist: {wordlist_path} ({wordlist_type}){Colors.END}")
         
         command = [
             'feroxbuster',
@@ -342,119 +277,168 @@ class WebScanners:
             '-q'  # Quiet mode
         ]
         
-        return run_command_func(command, 'feroxbuster.txt', 'Feroxbuster Directory Scan', 'feroxbuster')
+        return run_command_func(command, 'feroxbuster.txt', f'Feroxbuster Directory Enumeration ({wordlist_type})', 'feroxbuster')
     
+    def get_multiple_ffuf_wordlists(self) -> List[str]:
+        """Get multiple wordlists for comprehensive FFUF subdomain enumeration"""
+        wordlists = []
+        
+        # Priority order: small to large subdomain wordlists
+        potential_wordlists = [
+            '/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt',
+            '/usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt', 
+            '/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt',
+            '/usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-5000.txt',
+            '/usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt',
+            '/usr/share/wordlists/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt',
+            '/opt/SecLists/Discovery/DNS/subdomains-top1million-5000.txt',
+            '/opt/SecLists/Discovery/DNS/subdomains-top1million-20000.txt',
+            '/opt/SecLists/Discovery/DNS/bitquark-subdomains-top100000.txt'
+        ]
+        
+        for wordlist in potential_wordlists:
+            if Path(wordlist).exists() and wordlist not in wordlists:
+                wordlists.append(wordlist)
+                if len(wordlists) >= 3:  # Use up to 3 wordlists
+                    break
+        
+        # Fallback if no subdomain wordlists found
+        if not wordlists:
+            fallback = self.get_wordlist_path('common')
+            wordlists.append(fallback)
+            print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using fallback: {fallback}{Colors.END}")
+        
+        return wordlists
+
     def ffuf_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run FFUF scan (virtual host or subdomain enumeration)"""
-        ffuf_config = self.config['ffuf']
-        method = ffuf_config.get('method', 'vhost')  # Default to virtual host method
+        """Run FFUF subdomain enumeration with multiple wordlists"""
+        # Check if we have a domain name for subdomain enumeration
+        if not hasattr(self, 'primary_domain') or not self.primary_domain:
+            print(f"{Colors.YELLOW}⏭️  Skipping FFUF Subdomain Enumeration - No domain name available{Colors.END}")
+            print(f"{Colors.CYAN}💡 FFUF subdomain enumeration requires a domain name (e.g., example.htb){Colors.END}")
+            print(f"{Colors.CYAN}💡 Domain discovery must run first to identify the target domain{Colors.END}")
+            return {'status': 'skipped', 'reason': 'No domain name available for subdomain enumeration'}
         
-        # Choose wordlist based on method
-        if method == 'vhost':
-            # Virtual host enumeration - can work with just IP
-            # Use FFUF-specific wordlist (subdomain-focused)
-            wordlist_path = self.get_ffuf_wordlist_path()
-            
-            if not self.should_run_web_scan('FFUF Virtual Host', web_ports):
-                return {'status': 'skipped', 'reason': 'No web services detected'}
-            
-            port, base_url = self.get_best_web_port(target_ip, web_ports)
-            if not base_url:
-                return {'status': 'failed', 'reason': 'No responsive web services found'}
-            
-            # Extract domain from primary_domain if available, otherwise use a default
-            if hasattr(self, 'primary_domain') and self.primary_domain:
-                domain_parts = self.primary_domain.split('.')
-                if len(domain_parts) >= 2:
-                    base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
-                else:
-                    base_domain = self.primary_domain
-            else:
-                # No domain discovered yet - ask user or use common patterns
-                print(f"{Colors.YELLOW}⚠️  No domain discovered yet. FFUF Virtual Host enumeration works best with a known domain.{Colors.END}")
-                print(f"{Colors.CYAN}💡 Consider running domain discovery first, or manually specify domain like 'planning.htb'{Colors.END}")
-                # For now, use a placeholder that user can modify
-                base_domain = "target.htb"
-            
-            print(f"{Colors.GREEN}🌐 Running FFUF Virtual Host enumeration on: {target_ip} (testing {base_domain} subdomains){Colors.END}")
-            
-            command = [
-                'ffuf',
-                '-u', f"http://{target_ip}",  # Target the IP directly
-                '-H', f"Host: FUZZ.{base_domain}",  # Use Host header for virtual host enumeration
-                '-w', wordlist_path,
-                '-t', str(ffuf_config['threads']),
-                '-timeout', str(ffuf_config['timeout']),
-                '-mc', ffuf_config['match_codes'],
-                '-s'  # Silent mode
-            ]
-            
-            scan_description = f'FFUF Virtual Host Enumeration (Host: FUZZ.{base_domain})'
-            
+        # Extract base domain from primary domain (e.g., app.example.htb -> example.htb)
+        domain_parts = self.primary_domain.split('.')
+        if len(domain_parts) >= 2:
+            base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
         else:
-            # Subdomain enumeration - requires domain name
-            if not hasattr(self, 'primary_domain') or not self.primary_domain:
-                print(f"{Colors.YELLOW}⏭️  Skipping FFUF Subdomain Scan - No domain name available{Colors.END}")
-                print(f"{Colors.CYAN}💡 FFUF subdomain enumeration requires a domain name (e.g., example.htb){Colors.END}")
-                print(f"{Colors.CYAN}💡 Domain discovery must run first to identify the target domain{Colors.END}")
-                return {'status': 'skipped', 'reason': 'No domain name available for subdomain enumeration'}
-            
-            wordlist_path = self.get_ffuf_wordlist_path()  # Use FFUF-specific subdomain wordlist
-            
-            # Extract base domain from primary domain (e.g., app.example.htb -> example.htb)
-            domain_parts = self.primary_domain.split('.')
-            if len(domain_parts) >= 2:
-                base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
-            else:
-                base_domain = self.primary_domain
-            
-            print(f"{Colors.GREEN}🌐 Running FFUF subdomain enumeration on: {base_domain}{Colors.END}")
-            
-            command = [
-                'ffuf',
-                '-u', f"http://FUZZ.{base_domain}",  # Subdomain enumeration pattern
-                '-w', wordlist_path,
-                '-t', str(ffuf_config['threads']),
-                '-timeout', str(ffuf_config['timeout']),
-                '-mc', ffuf_config['match_codes'],
-                '-s'  # Silent mode
-            ]
-            
-            scan_description = f'FFUF Subdomain Enumeration (FUZZ.{base_domain})'
+            base_domain = self.primary_domain
         
-        # Add filter size if specified
-        if ffuf_config['filter_size']:
-            command.extend(['-fs', ffuf_config['filter_size']])
-            
-        # Add HTTPS support if port 443 is open
-        if 443 in web_ports and method == 'vhost':
-            print(f"{Colors.CYAN}💡 Will also test HTTPS virtual hosts{Colors.END}")
-        elif 443 in web_ports and method == 'subdomain':
-            print(f"{Colors.CYAN}💡 Will also test HTTPS subdomains{Colors.END}")
-        
-        return run_command_func(command, 'ffuf_results.txt', scan_description, 'ffuf')
-    
-    def nikto_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run Nikto web vulnerability scan"""
-        if not self.should_run_web_scan('Nikto', web_ports):
-            return {'status': 'skipped', 'reason': 'No web services detected'}
-        
+        # Get base URL for directory fuzzing mode
         port, base_url = self.get_best_web_port(target_ip, web_ports)
         if not base_url:
             return {'status': 'failed', 'reason': 'No responsive web services found'}
         
-        nikto_config = self.config['nikto']
+        # Get wordlists - use wordlist manager if available for directory enumeration mode
+        # For subdomain enumeration, we still use the specialized subdomain wordlists
+        if self.wordlist_manager and hasattr(self.wordlist_manager, 'check_cewl_available'):
+            # Check if user wants to use cewl for directory fuzzing instead of subdomain enumeration
+            try:
+                print(f"{Colors.CYAN}💡 FFUF can run in subdomain enumeration or directory fuzzing mode{Colors.END}")
+                mode_choice = input(f"{Colors.YELLOW}Use FFUF for (1) Subdomain enumeration or (2) Directory fuzzing? (1/2, default: 1): {Colors.END}").strip()
+                
+                if mode_choice == '2':
+                    # Switch to directory fuzzing mode with wordlist selection
+                    wordlist_type, wordlist_path = self.wordlist_manager.prompt_wordlist_selection("FFUF directory fuzzing")
+                    wordlists = [wordlist_path]
+                    fuzzing_mode = 'directory'
+                    target_pattern = f"{base_url}/FUZZ"
+                else:
+                    # Use subdomain enumeration mode with specialized wordlists
+                    wordlists = self.get_multiple_ffuf_wordlists()
+                    fuzzing_mode = 'subdomain'
+                    target_pattern = f"http://FUZZ.{base_domain}"
+            except KeyboardInterrupt:
+                print(f"\n{Colors.YELLOW}⏭️  Using default subdomain enumeration mode{Colors.END}")
+                wordlists = self.get_multiple_ffuf_wordlists()
+                fuzzing_mode = 'subdomain'
+                target_pattern = f"http://FUZZ.{base_domain}"
+        else:
+            # Default to subdomain enumeration
+            wordlists = self.get_multiple_ffuf_wordlists()
+            fuzzing_mode = 'subdomain'
+            target_pattern = f"http://FUZZ.{base_domain}"
+        
+        print(f"{Colors.GREEN}💨 Running FFUF {fuzzing_mode} enumeration with {len(wordlists)} wordlist(s){Colors.END}")
+        if fuzzing_mode == 'subdomain':
+            print(f"{Colors.CYAN}🎯 Target domain: {base_domain}{Colors.END}")
+        else:
+            print(f"{Colors.CYAN}🎯 Target URL: {base_url}{Colors.END}")
+        print(f"{Colors.CYAN}📋 Wordlists: {', '.join([Path(w).name for w in wordlists])}{Colors.END}")
+        
+        ffuf_config = self.config['ffuf']
+        
+        # Combine all wordlists into a single comma-separated string for ffuf
+        combined_wordlists = ','.join(wordlists)
         
         command = [
-            'nikto',
-            '-h', base_url,
-            '-Format', nikto_config['format'],
-            '-timeout', str(nikto_config['timeout']),
-            '-maxtime', str(nikto_config['max_scan_time'])
+            'ffuf',
+            '-u', target_pattern,  # Dynamic pattern based on mode
+            '-w', combined_wordlists,  # Multiple wordlists
+            '-t', str(ffuf_config['threads']),
+            '-timeout', str(ffuf_config['timeout']),
+            '-mc', ffuf_config['match_codes'],
+            '-s'  # Silent mode
         ]
         
-        return run_command_func(command, 'nikto.txt', 'Nikto Web Vulnerability Scan', 'nikto')
-    
+        # Add filter size if specified
+        if ffuf_config['filter_size']:
+            command.extend(['-fs', ffuf_config['filter_size']])
+        
+        # Add wildcard detection and filtering
+        command.extend(['-fw'])  # Filter by word count to handle wildcards
+        
+        if fuzzing_mode == 'subdomain':
+            scan_description = f'FFUF Subdomain Enumeration ({len(wordlists)} wordlists on {base_domain})'
+            output_prefix = 'ffuf_subdomains'
+        else:
+            scan_description = f'FFUF Directory Fuzzing ({len(wordlists)} wordlists)'
+            output_prefix = 'ffuf_directories'
+        
+        # Also test HTTPS if available (for subdomain mode) or if target is HTTPS (for directory mode)
+        results = []
+        
+        # Run HTTP enumeration
+        http_result = run_command_func(command, f'{output_prefix}_http.txt', scan_description + ' - HTTP', 'ffuf')
+        results.append(http_result)
+        
+        # Run HTTPS enumeration if applicable
+        should_test_https = (
+            (fuzzing_mode == 'subdomain' and (443 in web_ports or any(port in [443, 8443] for port in web_ports))) or
+            (fuzzing_mode == 'directory' and target_pattern.startswith('https://'))
+        )
+        
+        if should_test_https:
+            print(f"{Colors.CYAN}🔐 Also running HTTPS {fuzzing_mode} enumeration...{Colors.END}")
+            https_command = command.copy()
+            if fuzzing_mode == 'subdomain':
+                https_command[2] = f"https://FUZZ.{base_domain}"  # Change to HTTPS for subdomain
+            else:
+                https_command[2] = target_pattern.replace('http://', 'https://')  # Change to HTTPS for directory
+            
+            https_result = run_command_func(https_command, f'{output_prefix}_https.txt', scan_description + ' - HTTPS', 'ffuf')
+            results.append(https_result)
+        
+        # Return combined results
+        if all(r['status'] == 'success' for r in results):
+            return {
+                'status': 'success',
+                'output_files': [r['output_file'] for r in results],
+                'wordlists_used': len(wordlists),
+                'protocols_tested': ['HTTP'] + (['HTTPS'] if len(results) > 1 else [])
+            }
+        elif any(r['status'] == 'success' for r in results):
+            return {
+                'status': 'partial_success',
+                'output_files': [r['output_file'] for r in results if r['status'] == 'success'],
+                'wordlists_used': len(wordlists),
+                'protocols_tested': ['HTTP'] + (['HTTPS'] if len(results) > 1 else [])
+            }
+        else:
+            return results[0] if results else {'status': 'failed', 'reason': 'No scans executed'}
+
     def whatweb_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
         """Run WhatWeb technology detection"""
         if not self.should_run_web_scan('WhatWeb', web_ports):
@@ -468,13 +452,9 @@ class WebScanners:
         
         command = [
             'whatweb',
-            '--log-brief=-',
-            f'--aggression={whatweb_config["aggression"]}',
+            '--aggression', str(whatweb_config['aggression']),
             '--no-errors',
             base_url
         ]
-        
-        if whatweb_config['verbosity'] == 'verbose':
-            command.append('-v')
         
         return run_command_func(command, 'whatweb.txt', 'WhatWeb Technology Detection', 'whatweb') 

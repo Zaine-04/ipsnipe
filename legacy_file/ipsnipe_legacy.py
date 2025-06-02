@@ -4,7 +4,7 @@ ipsnipe - A user-friendly CLI tool for machine reconnaissance
 Author: hckerhub (X: @hckerhub)
 Website: https://hackerhub.me
 GitHub: https://github.com/hckerhub
-Version: 1.0.5
+Version: 2.1
 """
 
 import os
@@ -467,7 +467,7 @@ class ipsnipe:
                     urllib.request.install_opener(opener)
                 
                 request = urllib.request.Request(url)
-                request.add_header('User-Agent', 'ipsnipe/1.0')
+                request.add_header('User-Agent', 'ipsnipe/2.1')
                 
                 with urllib.request.urlopen(request, timeout=10) as response:
                     status_code = response.getcode()
@@ -1541,7 +1541,7 @@ For more information, visit: https://github.com/hckerhub
     parser.add_argument(
         '--version', 
         action='version', 
-        version='ipsnipe 1.0.5'
+        version='ipsnipe 2.1'
     )
     
     parser.add_argument(

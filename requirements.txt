@@ -16,8 +16,7 @@
 
 # External tools required (install separately):
 # - nmap
-# - gobuster  
-# - nikto
+
 # - whatweb
 
 # Optional dependencies (ipsnipe includes fallbacks)

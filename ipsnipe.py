@@ -4,7 +4,7 @@ ipsnipe - A user-friendly CLI tool for machine reconnaissance
 Author: hckerhub (X: @hckerhub)
 Website: https://hackerhub.me
 GitHub: https://github.com/hckerhub
-Version: 1.0.5
+Version: 2.1
 
 This is the refactored version with modular architecture.
 """
@@ -33,7 +33,7 @@ For more information, visit: https://github.com/hckerhub
     parser.add_argument(
         '--version', 
         action='version', 
-        version='ipsnipe 1.0.5 (Refactored)'
+        version='ipsnipe 2.1 (Refactored)'
     )
     
     parser.add_argument(

@@ -1,8 +1,8 @@
 # ipsnipe ⚡
 
-**Advanced Machine Reconnaissance Framework**
+**Advanced Machine Reconnaissance Framework v2.2 - HTB Optimized**
 
-A user-friendly CLI tool for automated penetration testing and reconnaissance. Integrates multiple security tools with intelligent scanning and beautiful output formatting.
+A user-friendly CLI tool for automated penetration testing and reconnaissance. Integrates multiple security tools with intelligent scanning and beautiful output formatting. **Now optimized for Hack The Box with advanced DNS enumeration, enhanced web discovery, and research-backed wordlists.**
 
 ```
  ___  ________  ________  ________   ___  ________  _______      
@@ -21,19 +21,19 @@ A user-friendly CLI tool for automated penetration testing and reconnaissance. I
 ## ✨ Features
 
 ### 🎯 **Automated Reconnaissance**
-- **Multi-tool Integration** - Seamlessly runs Nmap, Gobuster, Feroxbuster, ffuf, Nikto, WhatWeb, theHarvester, and DNSrecon
-- **One-Command Execution** - Select individual tools or run comprehensive scans with a single command
-- **Sequential Processing** - Intelligently orders scans for optimal results (port discovery → service enumeration → web testing)
+- **Streamlined Tool Integration** - Nmap with automatic web detection, Feroxbuster, FFUF, and theHarvester
+- **Intelligent Automation** - Web service detection and technology fingerprinting run automatically
+- **Sequential Processing** - Optimized scan order: port discovery → automatic web detection → targeted enumeration
 - **Progress Tracking** - Real-time status updates with execution times and success/failure indicators
 
-### 🌐 **Smart Web Service Detection**
-- **Multi-Method Detection** - Uses nmap parsing + standalone HTTP/HTTPS testing for maximum coverage
-- **Automatic Port Discovery** - Parses Nmap output to identify open ports and services
-- **Standalone Web Detection** - Direct HTTP/HTTPS testing that bypasses nmap entirely
-- **Responsive Port Testing** - Tests web ports for actual content and prioritizes active services
-- **HTB-Optimized Logic** - Handles edge cases like "tcpwrapped" services on port 80
+### 🌐 **Intelligent Web Service Detection**
+- **Automatic Integration** - Web service detection runs automatically with every nmap scan
+- **Standalone Web Detection** - Web tools auto-discover ports if run without nmap first
+- **Multi-Method Detection** - Combines nmap parsing + direct HTTP/HTTPS testing for maximum coverage
 - **Intelligent Fallback** - Multiple detection methods ensure web services aren't missed
+- **HTB-Optimized Logic** - Handles edge cases like "tcpwrapped" services on port 80
 - **Protocol Detection** - Determines HTTP vs HTTPS and uses appropriate scanning parameters
+- **Seamless Workflow** - No manual intervention needed for web service discovery
 
 ### 🔐 **Enhanced/Standard Scanning Modes**
 - **Privilege Detection** - Automatically detects sudo access and recommends appropriate mode
@@ -93,17 +93,114 @@ A user-friendly CLI tool for automated penetration testing and reconnaissance. I
 - **Cross-Platform** - Supports Linux, macOS, and Windows (via WSL2)
 - **HTB Optimization** - Specifically designed for Hack The Box machine reconnaissance
 
+## 🎯 HTB-Optimized Features (NEW v2.2)
+
+### 🚀 **Advanced DNS Enumeration**
+- **Certificate Transparency Discovery** - Searches crt.sh for subdomain discovery via SSL certificates
+- **HTB-Optimized Subdomain Brute Force** - 45+ common HTB subdomains (admin, api, dev, test, staging, portal, backup, secret, flag, etc.)
+- **Zone Transfer Attempts (AXFR)** - Automatic AXFR attempts against discovered nameservers
+- **Reverse DNS Analysis** - Tests nearby IP ranges (±10 IPs) for reverse DNS patterns
+- **Advanced Tools Integration** - Automatic use of subfinder, amass, and dnsrecon when available
+- **Comprehensive DNS Records** - A, AAAA, CNAME, MX, TXT, NS, SOA, SRV, PTR enumeration
+
+### 🌐 **Enhanced Web Discovery**
+- **Multi-Tool Directory Enumeration** - Combines gobuster with custom HTB path testing
+- **JavaScript Endpoint Analysis** - Extracts API endpoints and secrets from JavaScript files
+- **HTB-Specific File Extensions** - 25+ file types (php, html, asp, jsp, txt, zip, bak, old, backup, conf, config, sql, etc.)
+- **HTB-Specific Paths** - 45+ common HTB paths (admin, login, panel, api, backup, config, secret, flag, robots.txt, .env, etc.)
+- **Sensitive File Discovery** - Automated testing for 25+ sensitive files common in HTB
+- **Parameter Discovery** - Tests common HTB parameters (id, user, debug, cmd, include, etc.)
+- **Technology Fingerprinting** - Enhanced detection using WhatWeb + header analysis + response fingerprinting
+
+### 📚 **Research-Backed HTB Wordlists**
+- **HTB Champion Wordlist** - `/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt` (most successful in HTB community)
+- **Fast HTB Recon** - `/usr/share/seclists/Discovery/Web-Content/common.txt` (2-3 minute scans)
+- **HTB Balanced Approach** - `/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt` (different ordering strategy)
+- **HTB Comprehensive** - `/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt` (maximum coverage)
+- **Specialized Wordlists** - API endpoints, parameters, backup files, and subdomain lists
+- **Automatic SecLists Installation** - Essential wordlists installed during setup
+
+### ⚙️ **HTB-Optimized Configuration**
+- **Research-Based Defaults** - All settings optimized based on HTB community research and testing
+- **Enhanced Scanner Configuration** - Advanced DNS and web scanners with HTB-specific settings
+- **Configurable via config.toml** - All HTB optimizations fully configurable in single file
+- **Fallback Compatibility** - Graceful degradation when advanced tools aren't available
+
+## 🔄 Enhanced Reconnaissance Flow
+
+**Complete automated workflow with DNS enumeration and domain discovery:**
+
+```mermaid
+graph TD
+    A["🚀 nmap_quick scan"] --> B["🔍 Port discovery"]
+    B --> C["🌐 Web port detection"]
+    C --> D["📡 Enhanced web port testing"]
+    D --> E["🚀 Immediate whatweb domain discovery"]
+    
+    E --> F["🎯 Domain discovery results"]
+    F --> G["🛡️ Backup /etc/hosts"]
+    G --> H["📝 Add domains to /etc/hosts"]
+    H --> I["✅ Verify domain resolution"]
+    I --> J["🌟 Enhanced nmap with domain"]
+    
+    J --> K["🔍 Step 6: Comprehensive DNS enumeration"]
+    
+    K --> L["🔄 Zone transfer attempts (AXFR)"]
+    K --> M["📊 DNS record enumeration"]
+    K --> N["🔨 Subdomain brute force"]
+    K --> O["🃏 Wildcard detection"]
+    K --> P["🔄 Reverse DNS lookup"]
+    
+    L --> Q["📍 Extract subdomains from zone transfers"]
+    M --> R["🌐 Discover nameservers & records"]
+    N --> S["✅ Find common subdomains"]
+    O --> T["⚠️ Detect wildcard responses"]
+    P --> U["📍 PTR record discovery"]
+    
+    Q --> V["📝 Add all new subdomains to /etc/hosts"]
+    R --> V
+    S --> V
+    T --> V
+    U --> V
+    
+    V --> W["🔧 Configure wordlist manager"]
+    W --> X["🎯 Target-specific wordlists with cewl"]
+    X --> Y["🦀 Enhanced web enumeration"]
+    Y --> Z["🎉 Comprehensive reconnaissance complete"]
+    
+    style A fill:#e1f5fe
+    style K fill:#f3e5f5
+    style V fill:#e8f5e8
+    style Z fill:#fff3e0
+```
+
+**Key Features:**
+- 🌐 **Automatic Domain Discovery** - WhatWeb captures HTTP headers and discovers *.htb domains
+- 🔍 **Comprehensive DNS Enumeration** - Zone transfers, subdomain brute force, wildcard detection
+- 📝 **Auto /etc/hosts Management** - All discovered domains automatically added for resolution
+- 🎯 **Target-Specific Wordlists** - CeWL generates custom wordlists from discovered domains
+- 🔄 **Complete Integration** - Everything flows seamlessly without manual intervention
+
 ## 🛠️ Supported Tools
 
 | Tool | Purpose | Enhanced Mode |
 |------|---------|---------------|
-| **Nmap** | Port/Service scanning | SYN scans, OS detection, UDP |
-| **Web Detection** | Direct HTTP/HTTPS testing | Built-in (uses curl) |
-| **Gobuster/Feroxbuster/ffuf** | Directory enumeration | - |
-| **Nikto** | Web vulnerability scanning | - |
-| **WhatWeb** | Technology detection | - |
+| **Nmap** | Port/Service scanning + Web Detection | SYN scans, OS detection, UDP |
+| **Feroxbuster** | Directory enumeration (medium wordlist) | - |
+| **FFUF** | Subdomain enumeration (multiple wordlists) | - |
+| **Parameter Discovery & LFI** | Arjun + ParamSpider + WFUZZ + LFI Suite | Comprehensive parameter fuzzing and LFI testing |
+| **CMS Detection & Enumeration** | CMSeek + HTTP-Enum + CMS-specific tools | Complete CMS identification and security analysis |
+| **DNS Enumeration** | Comprehensive dig-based DNS enumeration | Zone transfers (AXFR), subdomain brute force, wildcard detection |
+| **🚀 Advanced DNS Enumeration (NEW)** | **HTB-optimized comprehensive DNS discovery** | **Certificate transparency, advanced tools (subfinder, amass, dnsrecon)** |
+| **🌐 Enhanced Web Discovery (NEW)** | **HTB-optimized multi-tool web enumeration** | **JavaScript analysis, gobuster integration, HTB-specific paths/extensions** |
+| **WhatWeb** | Technology detection (automatic) | - |
 | **theHarvester** | Information gathering | - |
-| **DNSrecon** | DNS enumeration | - |
+| **CeWL** | Custom wordlist generation (automatic) | Target-specific wordlists from discovered domains |
+| **🎯 Gobuster (NEW)** | **Fast directory enumeration** | **HTB-optimized with SecLists wordlists** |
+| **📡 Subfinder (NEW)** | **Advanced subdomain enumeration** | **Certificate transparency and passive discovery** |
+| **🔍 Amass (NEW)** | **Advanced OSINT enumeration** | **Comprehensive subdomain and asset discovery** |
+| **🗂️ DNSRecon (NEW)** | **Advanced DNS reconnaissance** | **Zone transfers, brute force, record enumeration** |
+
 
 ## 🚀 Quick Start
 
@@ -149,10 +246,12 @@ python3 ipsnipe.py
 
 ### Scan Selection Options
 ```bash
-🚀 all     # Run all available modules (1-12)
-🌐 web     # Run all web-related scans (5-10)
-🔍 nmap    # Run all Nmap scans (1-3)
-🎯 basic   # Run essential scans (1,4,9,10) - Perfect for HTB!
+🚀 all     # Run all available modules (1-11)
+            # Individual module selection (1,2,3,4,5,6,7,8,9,10,11)
+            # 8) DNS Enumeration - Comprehensive DNS enumeration
+            # 9) 🚀 Advanced DNS Enumeration - HTB-optimized (certificate transparency, zone transfers, advanced tools)
+            # 10) 🌐 Enhanced Web Discovery - HTB-optimized (JavaScript analysis, multi-tool enumeration)
+            # 11) theHarvester - Information gathering
 ```
 
 ### Port Range Examples
@@ -180,24 +279,29 @@ Ctrl+C                # Emergency termination (immediate stop)
 - **Flexible Workflow** - Adapt scanning strategy based on initial results
 
 ### Web Service Detection
-ipsnipe uses multiple methods to ensure web services are never missed:
+ipsnipe uses multiple intelligent methods to ensure web services are never missed:
 
 ```bash
 # Method 1: Enhanced nmap parsing
 ✅ Detects "tcpwrapped" services on port 80 as web services
 ✅ Handles various nmap output formats
 
-# Method 2: Standalone web detection (Option 4)
+# Method 2: Standalone web detection
 ✅ Direct HTTP/HTTPS testing using curl
 ✅ Works independently of nmap results  
 ✅ Perfect for HTB machines
 
-# Method 3: Automatic fallback
+# Method 3: Auto-discovery for web-only scans
+✅ Web tools auto-discover ports when run without nmap
+✅ Tests common web ports (80, 443, 8080, 8443, etc.)
+✅ Includes domain discovery when services found
+
+# Method 4: Automatic fallback
 ✅ Tests common web ports if nmap parsing fails
 ✅ Seamlessly integrates detected services
 ```
 
-**Perfect for HTB:** Use the "basic" scan option (1,4,9,10) for reliable web detection!
+**Perfect for HTB:** Web detection runs automatically OR when you run web-only scans!
 
 ### Enhanced vs Standard Mode
 
@@ -218,8 +322,7 @@ ipsnipe_10.10.10.123_20241201_143022/
 ├── SUMMARY_REPORT.md      # Overview with analysis tips
 ├── nmap_quick.txt         # Port scan results  
 ├── web_detection.txt      # Web service detection results
-├── gobuster_common.txt    # Directory enumeration
-├── nikto.txt             # Web vulnerabilities
+
 └── whatweb.txt           # Technology stack
 ```
 
@@ -251,11 +354,11 @@ sudo service networking restart
 ### Tool Installation
 ```bash
 # Ubuntu/Debian
-sudo apt install nmap gobuster nikto dnsrecon ffuf ruby curl
+sudo apt install nmap ffuf ruby curl
 sudo gem install whatweb
 
 # macOS
-brew install nmap gobuster nikto feroxbuster ffuf ruby curl
+brew install nmap feroxbuster ffuf ruby curl
 gem install whatweb
 
 # Note: curl is typically pre-installed on most systems

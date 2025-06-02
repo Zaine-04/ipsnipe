@@ -24,7 +24,7 @@ class WebDetector:
             # Use curl to test responsiveness
             curl_args = [
                 'curl', '-s', '-I', '--max-time', str(timeout), '--connect-timeout', '3',
-                '--user-agent', 'ipsnipe/1.0.5 (Security Scanner)'
+                '--user-agent', 'ipsnipe/2.1 (Security Scanner)'
             ]
             
             if protocol == 'https':

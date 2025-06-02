@@ -91,10 +91,8 @@ echo -e "\n${YELLOW}🔍 Checking tool dependencies...${NC}"
 # Core tools (required)
 CORE_TOOLS=(
     "nmap:nmap"
-    "gobuster:gobuster" 
-    "nikto:nikto"
-    "dnsrecon:dnsrecon"
     "curl:curl"
+    "dig:dig"
 )
 
 # Advanced tools (optional but recommended)
@@ -103,7 +101,16 @@ OPTIONAL_TOOLS=(
     "ffuf:ffuf"
     "theHarvester:theHarvester"
     "whatweb:whatweb"
+    "wfuzz:wfuzz"
+    "arjun:arjun"
+    "paramspider:paramspider"
+    "cmseek:cmseek"
+    "cewl:cewl"
     "ruby:ruby"
+    "gobuster:gobuster"
+    "subfinder:subfinder"
+    "amass:amass"
+    "dnsrecon:dnsrecon"
 )
 
 MISSING_CORE=()
@@ -264,8 +271,8 @@ case $OS in
         sudo apt update
         
         echo -e "${BLUE}🔄 Installing available tools via apt...${NC}"
-        # Install what's available via apt
-        sudo apt install -y nmap gobuster nikto curl wget ruby ruby-dev
+        # Install what's available via apt (HTB-optimized tools)
+        sudo apt install -y nmap curl wget dnsutils ruby ruby-dev cewl dnsrecon gobuster
         ;;
         
     "macos")
@@ -276,7 +283,10 @@ case $OS in
         fi
         
         echo -e "\n${BLUE}🔄 Installing tools via Homebrew...${NC}"
-        brew install nmap gobuster nikto feroxbuster ffuf ruby
+        # Install HTB-optimized tools via Homebrew
+        brew install nmap curl feroxbuster ffuf ruby bind gobuster
+        
+        # Note: cewl might not be available via brew, install as Ruby gem later
         
         # Set up Ruby path for gems
         echo -e "${BLUE}🔄 Setting up Ruby path...${NC}"
@@ -285,28 +295,85 @@ case $OS in
         
     "arch")
         echo -e "\n${BLUE}🔄 Installing tools via pacman...${NC}"
-        sudo pacman -S --noconfirm nmap gobuster nikto ruby feroxbuster ffuf
+        # Install HTB-optimized tools via pacman
+        sudo pacman -S --noconfirm nmap curl bind ruby feroxbuster ffuf gobuster
+        
+        # Note: cewl might need to be installed separately
         ;;
 esac
 
 # Install tools that need manual installation
 echo -e "\n${YELLOW}🔧 Installing tools that require manual setup...${NC}"
 
-# Install DNSrecon from GitHub
-if ! command -v dnsrecon &> /dev/null; then
-    echo -e "${BLUE}🔄 Installing DNSrecon from GitHub...${NC}"
-    if [[ -d "/tmp/dnsrecon" ]]; then
-        rm -rf /tmp/dnsrecon
-    fi
-    
-    git clone https://github.com/darkoperator/dnsrecon.git /tmp/dnsrecon
-    cd /tmp/dnsrecon
-    pip3 install --break-system-packages -r requirements.txt
-    sudo cp dnsrecon.py /usr/local/bin/dnsrecon
-    sudo chmod +x /usr/local/bin/dnsrecon
-    cd - > /dev/null
-    echo -e "${GREEN}✅ DNSrecon installed${NC}"
+# Install WFUZZ
+if ! command -v wfuzz &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing WFUZZ...${NC}"
+    pip3 install --break-system-packages wfuzz 2>/dev/null || pip3 install wfuzz
+    echo -e "${GREEN}✅ WFUZZ installed${NC}"
 fi
+
+# Install Arjun
+if ! command -v arjun &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing Arjun...${NC}"
+    pip3 install --break-system-packages arjun 2>/dev/null || pip3 install arjun
+    echo -e "${GREEN}✅ Arjun installed${NC}"
+fi
+
+# Install ParamSpider
+if ! command -v paramspider &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing ParamSpider...${NC}"
+    if [[ -d "/tmp/ParamSpider" ]]; then
+        rm -rf /tmp/ParamSpider
+    fi
+    git clone https://github.com/devanshbatham/ParamSpider.git /tmp/ParamSpider
+    cd /tmp/ParamSpider
+    pip3 install --break-system-packages -r requirements.txt 2>/dev/null || pip3 install -r requirements.txt
+    sudo ln -sf "$(pwd)/paramspider.py" /usr/local/bin/paramspider
+    sudo chmod +x /usr/local/bin/paramspider
+    cd - > /dev/null
+    echo -e "${GREEN}✅ ParamSpider installed${NC}"
+fi
+
+# Install CMSeek
+if ! command -v cmseek &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing CMSeek...${NC}"
+    if [[ -d "/tmp/CMSeek" ]]; then
+        rm -rf /tmp/CMSeek
+    fi
+    git clone https://github.com/Tuhinshubhra/CMSeek.git /tmp/CMSeek
+    cd /tmp/CMSeek
+    pip3 install --break-system-packages -r requirements.txt 2>/dev/null || pip3 install -r requirements.txt
+    sudo ln -sf "$(pwd)/cmseek.py" /usr/local/bin/cmseek
+    sudo chmod +x /usr/local/bin/cmseek
+    cd - > /dev/null
+    echo -e "${GREEN}✅ CMSeek installed${NC}"
+fi
+
+# Install CeWL (Custom Word List generator)
+if ! command -v cewl &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing CeWL (Custom Word List generator)...${NC}"
+    case $OS in
+        "debian")
+            # Try apt first (should work on most Debian/Ubuntu systems)
+            if sudo apt install -y cewl 2>/dev/null; then
+                echo -e "${GREEN}✅ CeWL installed via apt${NC}"
+            else
+                # Fallback to Ruby gem installation
+                echo -e "${BLUE}🔄 Installing CeWL via Ruby gem...${NC}"
+                sudo gem install cewl
+                echo -e "${GREEN}✅ CeWL installed via Ruby gem${NC}"
+            fi
+            ;;
+        "macos"|"arch")
+            # Install as Ruby gem
+            echo -e "${BLUE}🔄 Installing CeWL via Ruby gem...${NC}"
+            sudo gem install cewl
+            echo -e "${GREEN}✅ CeWL installed via Ruby gem${NC}"
+            ;;
+    esac
+fi
+
+
 
 # Install theHarvester from GitHub
 if ! command -v theHarvester &> /dev/null; then
@@ -324,9 +391,9 @@ if ! command -v theHarvester &> /dev/null; then
     echo -e "${GREEN}✅ theHarvester installed${NC}"
 fi
 
-# Install WhatWeb (try multiple methods)
+# Install WhatWeb (required for automatic web technology detection)
 if ! command -v whatweb &> /dev/null; then
-    echo -e "${BLUE}🔄 Installing WhatWeb...${NC}"
+    echo -e "${BLUE}🔄 Installing WhatWeb (required for automatic web technology detection)...${NC}"
     
     case $OS in
         "debian")
@@ -363,6 +430,164 @@ if ! command -v whatweb &> /dev/null; then
             fi
             ;;
     esac
+fi
+
+# Install advanced HTB tools for enhanced DNS enumeration
+echo -e "\n${YELLOW}🚀 Installing HTB-optimized advanced tools...${NC}"
+
+# Install Subfinder (requires Go)
+if ! command -v subfinder &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing Subfinder (advanced subdomain enumeration)...${NC}"
+    
+    # Check if Go is installed
+    if command -v go &> /dev/null; then
+        echo -e "${BLUE}🔄 Using Go to install Subfinder...${NC}"
+        go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+        
+        # Ensure Go bin is in PATH
+        if [[ -d "$HOME/go/bin" ]]; then
+            export PATH="$HOME/go/bin:$PATH"
+            echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.bashrc
+        fi
+        
+        # Create symlink for system-wide access
+        if [[ -f "$HOME/go/bin/subfinder" ]]; then
+            sudo ln -sf "$HOME/go/bin/subfinder" /usr/local/bin/subfinder
+            echo -e "${GREEN}✅ Subfinder installed via Go${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Subfinder installation via Go may have issues${NC}"
+        fi
+    else
+        echo -e "${BLUE}🔄 Installing Subfinder from GitHub releases...${NC}"
+        case $(uname -m) in
+            x86_64) ARCH="amd64" ;;
+            arm64|aarch64) ARCH="arm64" ;;
+            *) ARCH="amd64" ;;
+        esac
+        
+        case $OS in
+            "debian"|"arch") OS_TYPE="linux" ;;
+            "macos") OS_TYPE="macOS" ;;
+        esac
+        
+        # Download latest release
+        SUBFINDER_URL="https://github.com/projectdiscovery/subfinder/releases/latest/download/subfinder_2.6.3_${OS_TYPE}_${ARCH}.zip"
+        curl -L "$SUBFINDER_URL" -o /tmp/subfinder.zip 2>/dev/null || {
+            echo -e "${YELLOW}⚠️  Could not download Subfinder binary${NC}"
+        }
+        
+        if [[ -f "/tmp/subfinder.zip" ]]; then
+            cd /tmp
+            unzip -q subfinder.zip
+            sudo mv subfinder /usr/local/bin/
+            sudo chmod +x /usr/local/bin/subfinder
+            rm -f subfinder.zip
+            cd - > /dev/null
+            echo -e "${GREEN}✅ Subfinder installed from GitHub releases${NC}"
+        fi
+    fi
+fi
+
+# Install Amass (advanced OSINT tool)
+if ! command -v amass &> /dev/null; then
+    echo -e "${BLUE}🔄 Installing Amass (advanced OSINT enumeration)...${NC}"
+    
+    case $OS in
+        "debian")
+            # Try installing via snap first (most reliable)
+            if command -v snap &> /dev/null; then
+                echo -e "${BLUE}🔄 Installing Amass via snap...${NC}"
+                sudo snap install amass
+                echo -e "${GREEN}✅ Amass installed via snap${NC}"
+            else
+                # Fallback to GitHub releases
+                echo -e "${BLUE}🔄 Installing Amass from GitHub releases...${NC}"
+                case $(uname -m) in
+                    x86_64) ARCH="amd64" ;;
+                    *) ARCH="amd64" ;;
+                esac
+                
+                AMASS_URL="https://github.com/owasp-amass/amass/releases/latest/download/amass_linux_${ARCH}.zip"
+                curl -L "$AMASS_URL" -o /tmp/amass.zip 2>/dev/null || {
+                    echo -e "${YELLOW}⚠️  Could not download Amass binary${NC}"
+                }
+                
+                if [[ -f "/tmp/amass.zip" ]]; then
+                    cd /tmp
+                    unzip -q amass.zip
+                    # Find the amass binary in the extracted directory
+                    find . -name "amass" -type f -executable | head -1 | xargs -I {} sudo mv {} /usr/local/bin/
+                    sudo chmod +x /usr/local/bin/amass
+                    rm -rf amass* && rm -f amass.zip
+                    cd - > /dev/null
+                    echo -e "${GREEN}✅ Amass installed from GitHub releases${NC}"
+                fi
+            fi
+            ;;
+        "macos")
+            # Use Homebrew
+            if brew install amass 2>/dev/null; then
+                echo -e "${GREEN}✅ Amass installed via Homebrew${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Amass not available via Homebrew${NC}"
+            fi
+            ;;
+        "arch")
+            # Try AUR or manual installation
+            if command -v yay &> /dev/null; then
+                yay -S amass --noconfirm 2>/dev/null || echo -e "${YELLOW}⚠️  Amass not available via yay${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Consider installing Amass manually or via AUR${NC}"
+            fi
+            ;;
+    esac
+fi
+
+# Install SecLists wordlists (critical for HTB)
+if [[ ! -d "/usr/share/seclists" ]]; then
+    echo -e "${BLUE}🔄 Installing SecLists (essential HTB wordlists)...${NC}"
+    
+    case $OS in
+        "debian")
+            # Try apt first
+            if sudo apt install -y seclists 2>/dev/null; then
+                echo -e "${GREEN}✅ SecLists installed via apt${NC}"
+            else
+                # Fallback to GitHub clone
+                echo -e "${BLUE}🔄 Installing SecLists from GitHub...${NC}"
+                sudo git clone https://github.com/danielmiessler/SecLists.git /usr/share/seclists
+                echo -e "${GREEN}✅ SecLists installed from GitHub${NC}"
+            fi
+            ;;
+        "macos")
+            # Install via Homebrew or manual clone
+            if brew install seclists 2>/dev/null; then
+                echo -e "${GREEN}✅ SecLists installed via Homebrew${NC}"
+            else
+                echo -e "${BLUE}🔄 Installing SecLists from GitHub...${NC}"
+                sudo git clone https://github.com/danielmiessler/SecLists.git /usr/share/seclists
+                echo -e "${GREEN}✅ SecLists installed from GitHub${NC}"
+            fi
+            ;;
+        "arch")
+            # Try pacman or manual clone
+            if sudo pacman -S --noconfirm seclists 2>/dev/null; then
+                echo -e "${GREEN}✅ SecLists installed via pacman${NC}"
+            else
+                echo -e "${BLUE}🔄 Installing SecLists from GitHub...${NC}"
+                sudo git clone https://github.com/danielmiessler/SecLists.git /usr/share/seclists
+                echo -e "${GREEN}✅ SecLists installed from GitHub${NC}"
+            fi
+            ;;
+    esac
+    
+    # Set proper permissions
+    if [[ -d "/usr/share/seclists" ]]; then
+        sudo chmod -R 755 /usr/share/seclists
+        echo -e "${GREEN}✅ SecLists permissions configured${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ SecLists already installed${NC}"
 fi
 
 # Make ipsnipe executable
@@ -433,6 +658,13 @@ echo -e "\n${YELLOW}🔍 Verifying installation...${NC}"
 
 VERIFICATION_FAILED=false
 
+# Enhanced verification for HTB tools
+HTB_TOOLS=(
+    "gobuster:gobuster"
+    "subfinder:subfinder"
+    "amass:amass"
+)
+
 echo -e "\n${CYAN}🔍 Verification Results:${NC}"
 for tool_pair in "${CORE_TOOLS[@]}"; do
     tool_name=$(echo "$tool_pair" | cut -d':' -f1)
@@ -450,6 +682,26 @@ for tool_pair in "${OPTIONAL_TOOLS[@]}"; do
     check_tool "$tool_name" "$command_name" || true  # Don't fail on optional tools
 done
 
+echo -e "\n${CYAN}🚀 HTB-Optimized Tools Status:${NC}"
+for tool_pair in "${HTB_TOOLS[@]}"; do
+    tool_name=$(echo "$tool_pair" | cut -d':' -f1)
+    command_name=$(echo "$tool_pair" | cut -d':' -f2)
+    
+    if check_tool "$tool_name" "$command_name"; then
+        echo -e "${GREEN}   🎯 $tool_name ready for HTB enumeration${NC}"
+    else
+        echo -e "${YELLOW}   ⚠️  $tool_name not available (advanced features may be limited)${NC}"
+    fi
+done
+
+# Check SecLists specifically
+if [[ -d "/usr/share/seclists" ]]; then
+    echo -e "${GREEN}✅ SecLists wordlists installed (critical for HTB)${NC}"
+    echo -e "${CYAN}   📋 HTB champion wordlist: /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt${NC}"
+else
+    echo -e "${YELLOW}⚠️  SecLists not found - using fallback wordlists${NC}"
+fi
+
 # Test ipsnipe
 echo -e "\n${YELLOW}🧪 Testing ipsnipe...${NC}"
 if python3 ipsnipe.py --version &> /dev/null; then
@@ -460,15 +712,20 @@ fi
 
 # Final message
 echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}🎉 Installation completed!${NC}"
+echo -e "${GREEN}🎉 ipsnipe HTB-Optimized Installation Completed!${NC}"
 
 if [[ "$VERIFICATION_FAILED" == false ]]; then
-    echo -e "${GREEN}✅ All core tools are installed and ready to use${NC}"
+    echo -e "${GREEN}✅ All core tools are installed and ready for HTB reconnaissance${NC}"
+    echo -e "${CYAN}🎯 HTB-specific enhancements include:${NC}"
+    echo -e "${BLUE}   • Advanced DNS enumeration (subfinder, amass, certificate transparency)${NC}"
+    echo -e "${BLUE}   • Enhanced web discovery (gobuster, JavaScript analysis, multi-tool)${NC}"
+    echo -e "${BLUE}   • HTB-optimized wordlists (SecLists directory-list-2.3-medium.txt)${NC}"
+    echo -e "${BLUE}   • Automatic domain discovery and /etc/hosts management${NC}"
     echo -e "\n${BLUE}🚀 To start ipsnipe, run:${NC}"
     echo -e "${YELLOW}   python3 ipsnipe.py${NC}"
 else
     echo -e "${YELLOW}⚠️  Some core tools may not be available. Check the verification results above.${NC}"
-    echo -e "${BLUE}💡 ipsnipe will work with available tools, but some features may be limited.${NC}"
+    echo -e "${BLUE}💡 ipsnipe will work with available tools, but some HTB features may be limited.${NC}"
     echo -e "\n${BLUE}🚀 You can still try running ipsnipe:${NC}"
     echo -e "${YELLOW}   python3 ipsnipe.py${NC}"
 fi
@@ -476,7 +733,9 @@ fi
 echo -e "\n${CYAN}📋 Important Notes:${NC}"
 echo -e "${BLUE}• ipsnipe includes an ethical use disclaimer${NC}"
 echo -e "${BLUE}• You must agree to use the tool legally and ethically${NC}"
-echo -e "${BLUE}• Some tools may require additional configuration for full functionality${NC}"
+echo -e "${BLUE}• HTB-optimized features require Enhanced Mode (sudo access)${NC}"
+echo -e "${BLUE}• Advanced DNS tools (subfinder, amass) provide comprehensive enumeration${NC}"
+echo -e "${BLUE}• SecLists wordlists are essential for effective HTB reconnaissance${NC}"
 
 echo -e "\n${BLUE}📖 For more information, check:${NC}"
 echo -e "${YELLOW}• README.md - Complete documentation${NC}"

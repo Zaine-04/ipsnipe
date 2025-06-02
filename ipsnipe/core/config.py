@@ -86,9 +86,7 @@ class ConfigManager:
                 'quick_ports': '1000',
                 'timing': 'T4'
             },
-            'gobuster': {
-                'threads': 50
-            },
+
             'feroxbuster': {
                 'threads': 50
             },
@@ -96,18 +94,14 @@ class ConfigManager:
                 'threads': 40,
                 'method': 'vhost'
             },
-            'nikto': {
-                'timeout': 700
-            },
+
             'whatweb': {
                 'aggression': 1
             },
             'theharvester': {
                 'limit': 100
             },
-            'dnsrecon': {
-                'threads': 10
-            },
+
             'output': {
                 'colorize_output': True
             }

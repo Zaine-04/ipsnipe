@@ -32,9 +32,7 @@ class IPSnipeUninstaller:
         self.python_packages = ['toml', 'colorama', 'rich']
         self.system_tools = {
             'nmap': 'nmap',
-            'gobuster': 'gobuster',
-            'nikto': 'nikto',
-            'dnsrecon': 'dnsrecon',
+            
             'feroxbuster': 'feroxbuster',
             'ffuf': 'ffuf',
             'theHarvester': 'theHarvester',
@@ -128,7 +126,7 @@ class IPSnipeUninstaller:
                 print(f"{Colors.GREEN}✅ {file_path} - FOUND{Colors.NC}")
         
         # Check for installed binaries in system paths
-        system_binaries = ['/usr/local/bin/dnsrecon', '/usr/local/bin/theHarvester', '/usr/local/bin/whatweb']
+        system_binaries = ['/usr/local/bin/theHarvester', '/usr/local/bin/whatweb']
         for binary in system_binaries:
             if os.path.exists(binary):
                 self.project_files.append(binary)
@@ -300,7 +298,7 @@ class IPSnipeUninstaller:
     
     def uninstall_debian_tools(self, tools):
         """Uninstall tools on Debian/Ubuntu"""
-        apt_tools = [tool for tool in tools if tool in ['nmap', 'gobuster', 'nikto', 'ruby', 'whatweb']]
+                    apt_tools = [tool for tool in tools if tool in ['nmap', 'ruby', 'whatweb']]
         
         if apt_tools:
             try:
@@ -318,7 +316,7 @@ class IPSnipeUninstaller:
     
     def uninstall_macos_tools(self, tools):
         """Uninstall tools on macOS"""
-        brew_tools = [tool for tool in tools if tool in ['nmap', 'gobuster', 'nikto', 'feroxbuster', 'ffuf', 'ruby']]
+                    brew_tools = [tool for tool in tools if tool in ['nmap', 'feroxbuster', 'ffuf', 'ruby']]
         
         if brew_tools and shutil.which('brew'):
             try:
@@ -336,7 +334,7 @@ class IPSnipeUninstaller:
     
     def uninstall_arch_tools(self, tools):
         """Uninstall tools on Arch Linux"""
-        pacman_tools = [tool for tool in tools if tool in ['nmap', 'gobuster', 'nikto', 'ruby', 'feroxbuster', 'ffuf', 'whatweb']]
+                    pacman_tools = [tool for tool in tools if tool in ['nmap', 'ruby', 'feroxbuster', 'ffuf', 'whatweb']]
         
         if pacman_tools:
             try:
@@ -354,9 +352,8 @@ class IPSnipeUninstaller:
     
     def remove_manual_tools(self, tools):
         """Remove manually installed tools"""
-        manual_tools = ['dnsrecon', 'theHarvester', 'whatweb']
+        manual_tools = ['theHarvester', 'whatweb']
         manual_binaries = {
-            'dnsrecon': '/usr/local/bin/dnsrecon',
             'theHarvester': '/usr/local/bin/theHarvester',
             'whatweb': '/usr/local/bin/whatweb'
         }

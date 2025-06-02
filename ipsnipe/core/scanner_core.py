@@ -116,16 +116,11 @@ class ScannerCore:
                 (r'OS details:', Colors.PURPLE),
                 (r'Service Info:', Colors.BLUE),
             ]
-        elif scan_type in ['gobuster', 'feroxbuster', 'ffuf']:
+        elif scan_type in ['feroxbuster', 'ffuf']:
             patterns = [
                 (r'Status:\s*(\d+)', Colors.GREEN),
                 (r'Size:\s*(\d+)', Colors.CYAN),
                 (r'(\.php|\.html|\.txt|\.js|\.css)', Colors.YELLOW),
-            ]
-        elif scan_type == 'nikto':
-            patterns = [
-                (r'\+\s+', Colors.GREEN),  # Nikto findings
-                (r'OSVDB-\d+', Colors.PURPLE),
             ]
         else:
             patterns = []
@@ -141,16 +136,10 @@ class ScannerCore:
         """Execute a command that can be interrupted by user input"""
         timeout = self.config['general']['scan_timeout']
         
-        # Show instructions only once per session
-        if not self.instructions_shown:
-            print(f"{Colors.CYAN}💡 Press 's' + Enter to skip, 'q' + Enter to quit all scans{Colors.END}")
-            self.instructions_shown = True
-        
         # Initialize and start progress indicator
         progress = ScanProgressIndicator(description, timeout)
         progress.start()
         
-        self.skip_current_scan = False
         start_time = time.time()
         
         try:
@@ -163,23 +152,19 @@ class ScannerCore:
                 preexec_fn=os.setsid if hasattr(os, 'setsid') else None
             )
             
-            # Start input monitoring
-            self.start_input_monitor()
-            
-            # Monitor process while checking for user input
+            # Monitor process while checking for user input and progress indicator status
             while self.current_process.poll() is None:
-                # Check for skip request
-                skip_request = self.check_for_skip_request()
-                if skip_request == 'quit':
-                    progress.stop("user_quit")
-                    print(f"{Colors.YELLOW}🛑 User requested to quit all scans{Colors.END}")
-                    self._terminate_process()
-                    return {'status': 'user_quit', 'output_file': output_file}
-                elif skip_request:
-                    progress.stop("skipped")
+                # Check if progress indicator detected skip/quit
+                if progress.skipped:
+                    final_status = progress.stop("skipped")
                     print(f"{Colors.YELLOW}⏭️  Skipping {description} at user request{Colors.END}")
                     self._terminate_process()
                     return self._create_skip_report(output_file, description, start_time)
+                elif progress.quit_requested:
+                    final_status = progress.stop("quit")
+                    print(f"{Colors.YELLOW}🛑 User requested to quit all scans{Colors.END}")
+                    self._terminate_process()
+                    return {'status': 'user_quit', 'output_file': output_file}
                 
                 # Check for timeout
                 elapsed = time.time() - start_time
@@ -200,7 +185,7 @@ class ScannerCore:
             return_code = self.current_process.returncode
             
             # Stop progress indicator cleanly
-            progress.stop("completed", execution_time)
+            final_status = progress.stop("completed", execution_time)
             
             # Format the output content
             formatted_stdout = self.format_output_content(stdout, scan_type)
@@ -344,7 +329,7 @@ class ScannerCore:
     
     def check_dependencies(self) -> bool:
         """Check if required tools are installed"""
-        tools = ['nmap', 'gobuster', 'nikto', 'whatweb', 'feroxbuster', 'ffuf', 'theHarvester', 'dnsrecon']
+        tools = ['nmap', 'whatweb', 'feroxbuster', 'ffuf', 'theHarvester', 'wfuzz', 'arjun', 'paramspider', 'cmseek', 'curl']
         missing_tools = []
         
         print(f"{Colors.YELLOW}🔍 Checking dependencies...{Colors.END}")

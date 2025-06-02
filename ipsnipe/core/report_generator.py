@@ -64,19 +64,16 @@ class ReportGenerator:
                 # Extract findings based on scan type
                 if 'nmap' in scan_name:
                     findings['open_services'].extend(self._extract_services(content))
-                elif any(x in scan_name for x in ['gobuster', 'ferox', 'ffuf']):
+                elif any(x in scan_name for x in ['ferox', 'ffuf']):
                     paths, files = self._extract_web_content(content)
                     findings['web_paths'].extend(paths)
                     findings['interesting_files'].extend(files)
-                elif 'nikto' in scan_name:
-                    findings['critical_vulns'].extend(self._extract_vulns(content))
                 elif 'whatweb' in scan_name:
                     findings['technologies'].extend(self._extract_tech_stack(content))
                 elif 'theharvester' in scan_name:
                     findings['emails'].extend(self._extract_emails(content))
                     findings['subdomains'].extend(self._extract_subdomains(content))
-                elif 'dnsrecon' in scan_name:
-                    findings['subdomains'].extend(self._extract_dns_records(content))
+
                 
                 # Always look for credentials
                 findings['credentials'].extend(self._find_credentials(content))
@@ -133,17 +130,7 @@ class ReportGenerator:
         
         return paths[:20], files[:15]  # Limit results
     
-    def _extract_vulns(self, content: str) -> List[str]:
-        """Extract critical vulnerabilities from Nikto output"""
-        vulns = []
-        for line in content.split('\n'):
-            if line.startswith('+') and any(keyword in line.lower() for keyword in 
-                                          ['vuln', 'cve', 'security', 'exploit', 'injection']):
-                # Clean up the line
-                clean_line = re.sub(r'^\+\s*', '', line).strip()
-                if len(clean_line) > 20:  # Filter out very short findings
-                    vulns.append(clean_line)
-        return vulns[:10]  # Top 10
+
     
     def _extract_tech_stack(self, content: str) -> List[str]:
         """Extract technology stack from WhatWeb output"""
@@ -181,15 +168,7 @@ class ReportGenerator:
                     subdomains.append(subdomain)
         return subdomains[:10]
     
-    def _extract_dns_records(self, content: str) -> List[str]:
-        """Extract DNS records from dnsrecon"""
-        records = []
-        for line in content.split('\n'):
-            if any(record_type in line for record_type in ['A ', 'CNAME', 'MX', 'TXT']):
-                match = re.search(r'([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', line)
-                if match:
-                    records.append(match.group(1).lower())
-        return records[:10]
+
     
     def _find_credentials(self, content: str) -> List[str]:
         """Look for potential credentials in any scan output"""

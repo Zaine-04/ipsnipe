@@ -10,9 +10,11 @@ from .core.config import ConfigManager
 from .ui.colors import Colors, print_banner
 from .ui.interface import UserInterface
 from .core.scanner_core import ScannerCore
-from .scanners import NmapScanner, WebScanners, DNSScanner
+from .scanners import NmapScanner, WebScanners, DNSScanner, WordlistManager
 from .scanners.web_detection import WebDetector
 from .scanners.domain_manager import DomainManager
+from .scanners.param_lfi_scanner import ParameterLFIScanner
+from .scanners.cms_scanner import CMSScanner
 from .core.report_generator import ReportGenerator
 
 
@@ -38,7 +40,10 @@ class IPSnipeApp:
         self.dns_scanner = None
         self.web_detector = WebDetector()
         self.domain_manager = None
+        self.param_lfi_scanner = None
+        self.cms_scanner = None
         self.report_generator = None
+        self.wordlist_manager = None  # Will be initialized after output_dir is set
         
         # Port and domain tracking
         self.open_ports = []
@@ -52,11 +57,65 @@ class IPSnipeApp:
         self.web_scanners = WebScanners(self.config)
         self.dns_scanner = DNSScanner(self.config)
         self.domain_manager = DomainManager(self.target_ip, self.enhanced_mode)
+        self.param_lfi_scanner = ParameterLFIScanner(self.config)
+        self.cms_scanner = CMSScanner(self.config)
         self.report_generator = ReportGenerator(self.output_dir)
+        self.wordlist_manager = WordlistManager(self.config, self.output_dir)
+        
+        # Initialize enhanced scanners
+        try:
+            from .scanners.advanced_dns_scanner import AdvancedDNSScanner
+            self.advanced_dns_scanner = AdvancedDNSScanner(self.config)
+        except ImportError:
+            print(f"{Colors.YELLOW}⚠️  Advanced DNS scanner not available{Colors.END}")
+            self.advanced_dns_scanner = None
+            
+        try:
+            from .scanners.enhanced_web_scanner import EnhancedWebScanner
+            self.enhanced_web_scanner = EnhancedWebScanner(self.config)
+        except ImportError:
+            print(f"{Colors.YELLOW}⚠️  Enhanced web scanner not available{Colors.END}")
+            self.enhanced_web_scanner = None
     
     def run_command(self, command: List[str], output_file: str, description: str, scan_type: str = "generic") -> Dict:
         """Delegate command execution to scanner core"""
         return self.scanner_core.run_command(command, output_file, description, scan_type)
+    
+    def _auto_discover_web_ports_and_domains(self):
+        """Auto-discover web ports and domains when no nmap scan has been run"""
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}🔍 Web-only scan detected - performing automatic web port discovery{Colors.END}")
+        print(f"{Colors.CYAN}💡 No nmap scan performed yet, checking common web ports automatically...{Colors.END}")
+        
+        # Common web ports to check
+        common_web_ports = [80, 443, 8080, 8443, 8000, 8888, 3000, 5000, 8008]
+        
+        print(f"{Colors.CYAN}🌐 Testing common web ports: {common_web_ports}{Colors.END}")
+        
+        # Use web detector to find responsive web services
+        web_result = self.web_detector.quick_web_check(self.target_ip, common_web_ports)
+        
+        if web_result['has_web_services']:
+            self.web_ports.extend(web_result['web_ports'])
+            self.open_ports.extend(web_result['web_ports'])  # Also add to general open ports list
+            
+            print(f"{Colors.GREEN}✅ Found responsive web services on: {web_result['web_ports']}{Colors.END}")
+            
+            # Now run domain discovery since we found web services
+            print(f"{Colors.CYAN}🚀 Running domain discovery on detected web services...{Colors.END}")
+            domains_added = self._run_automatic_domain_discovery()
+            
+            # Configure wordlist manager even if domains weren't added
+            if self.wordlist_manager and not domains_added:
+                self.wordlist_manager.set_web_ports(web_result['web_ports'])
+                if hasattr(self.web_scanners, 'set_wordlist_manager'):
+                    self.web_scanners.set_wordlist_manager(self.wordlist_manager)
+                    print(f"{Colors.CYAN}🔧 Web scanners configured with wordlist manager{Colors.END}")
+            
+            return True
+        else:
+            print(f"{Colors.YELLOW}⚠️  No responsive web services found on common ports{Colors.END}")
+            print(f"{Colors.CYAN}💡 Web tools will be skipped - consider running nmap first for comprehensive port discovery{Colors.END}")
+            return False
     
     def _run_automatic_domain_discovery(self) -> bool:
         """Automatically run domain discovery and enhanced nmap when web ports are found"""
@@ -137,6 +196,39 @@ class IPSnipeApp:
                     if hasattr(self.web_scanners, 'set_primary_domain'):
                         self.web_scanners.set_primary_domain(best_domain)
                         print(f"{Colors.CYAN}🔧 Web scanners configured to use domain: {best_domain}{Colors.END}")
+                    
+                    # Step 6: Comprehensive DNS enumeration
+                    print(f"{Colors.CYAN}🔍 Step 6: Running comprehensive DNS enumeration...{Colors.END}")
+                    dns_result = self.dns_scanner.comprehensive_dns_enumeration(
+                        self.target_ip, discovered_domains, self.run_command
+                    )
+                    
+                    # Add newly discovered subdomains to hosts file
+                    if dns_result.get('status') == 'success' and dns_result.get('new_domains'):
+                        new_subdomains = dns_result['new_domains']
+                        print(f"{Colors.GREEN}🎯 DNS enumeration found {len(new_subdomains)} additional subdomains{Colors.END}")
+                        
+                        # Add new subdomains to hosts file
+                        hosts_updated_dns = self.domain_manager.add_domains_to_hosts(new_subdomains)
+                        if hosts_updated_dns:
+                            print(f"{Colors.GREEN}✅ New subdomains added to /etc/hosts{Colors.END}")
+                            # Update our discovered domains list
+                            self.discovered_domains.extend(new_subdomains)
+                            discovered_domains.extend(new_subdomains)  # Also update local list
+                        
+                        # Store DNS enumeration results
+                        self.results['dns_enumeration'] = dns_result
+                    
+                    # Configure wordlist manager with discovered domains and web ports
+                    if self.wordlist_manager:
+                        self.wordlist_manager.set_discovered_domains(discovered_domains)
+                        self.wordlist_manager.set_web_ports(confirmed_web_ports)
+                        print(f"{Colors.CYAN}🔧 Wordlist manager configured with discovered domains{Colors.END}")
+                        
+                        # Connect wordlist manager to web scanners
+                        if hasattr(self.web_scanners, 'set_wordlist_manager'):
+                            self.web_scanners.set_wordlist_manager(self.wordlist_manager)
+                            print(f"{Colors.CYAN}🔧 Web scanners configured with wordlist manager{Colors.END}")
                     
                     print()  # Add spacing
                     return True
@@ -232,106 +324,166 @@ class IPSnipeApp:
                 
                 first_nmap_completed = True
                 
-            elif attack == 'gobuster_common':
-                # Force domain discovery before web scans if we have any open ports but missed it earlier
-                if first_nmap_completed and not domains_added_to_hosts and self.open_ports:
-                    # Check if any open ports might be web services
-                    potential_web_ports = [p for p in self.open_ports if p in [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000]]
-                    if potential_web_ports:
-                        print(f"{Colors.YELLOW}🔍 Detected potential web ports {potential_web_ports} - running domain discovery before web scans...{Colors.END}")
-                        self.web_ports.extend(potential_web_ports)
-                        self.web_ports = sorted(list(set(self.web_ports)))  # Remove duplicates
-                        domains_added_to_hosts = self._run_automatic_domain_discovery()
-                
-                self.results[attack] = self.web_scanners.gobuster_common(
-                    self.target_ip, self.web_ports, self.run_command
-                )
-                
-            elif attack == 'gobuster_big':
-                self.results[attack] = self.web_scanners.gobuster_big(
-                    self.target_ip, self.web_ports, self.run_command
-                )
+
                 
             elif attack == 'feroxbuster':
+                # Auto-discover web ports if none found yet
+                if not self.web_ports:
+                    self._auto_discover_web_ports_and_domains()
+                
+                # Ensure wordlist manager is connected to web scanners
+                if self.wordlist_manager and hasattr(self.web_scanners, 'set_wordlist_manager'):
+                    self.web_scanners.set_wordlist_manager(self.wordlist_manager)
+                
                 self.results[attack] = self.web_scanners.feroxbuster_scan(
                     self.target_ip, self.web_ports, self.run_command
                 )
                 
             elif attack == 'ffuf':
+                # Auto-discover web ports if none found yet
+                if not self.web_ports:
+                    self._auto_discover_web_ports_and_domains()
+                
+                # Ensure wordlist manager is connected to web scanners
+                if self.wordlist_manager and hasattr(self.web_scanners, 'set_wordlist_manager'):
+                    self.web_scanners.set_wordlist_manager(self.wordlist_manager)
+                
                 self.results[attack] = self.web_scanners.ffuf_scan(
                     self.target_ip, self.web_ports, self.run_command
                 )
                 
-            elif attack == 'nikto':
-                self.results[attack] = self.web_scanners.nikto_scan(
+
+                
+            elif attack == 'param_lfi_scan':
+                # Auto-discover web ports if none found yet
+                if not self.web_ports:
+                    self._auto_discover_web_ports_and_domains()
+                
+                self.results[attack] = self.param_lfi_scanner.comprehensive_param_lfi_scan(
                     self.target_ip, self.web_ports, self.run_command
                 )
                 
-            elif attack == 'whatweb':
-                self.results[attack] = self.web_scanners.whatweb_scan(
+            elif attack == 'cms_scan':
+                # Auto-discover web ports if none found yet
+                if not self.web_ports:
+                    self._auto_discover_web_ports_and_domains()
+                
+                self.results[attack] = self.cms_scanner.comprehensive_cms_scan(
                     self.target_ip, self.web_ports, self.run_command
                 )
                 
-            elif attack == 'theharvester':
-                self.results[attack] = self.dns_scanner.theharvester_scan(
-                    self.target_ip, self.run_command
-                )
-                
-            elif attack == 'dnsrecon':
-                self.results[attack] = self.dns_scanner.dnsrecon_scan(
-                    self.target_ip, self.run_command
-                )
-                
-            elif attack == 'web_detect':
-                print(f"{Colors.YELLOW}🔍 Running standalone web service detection...{Colors.END}")
-                web_result = self.web_detector.quick_web_check(self.target_ip, self.open_ports)
-                
-                if web_result['has_web_services']:
-                    # Add detected web ports to our tracking
-                    for port in web_result['web_ports']:
-                        if port not in self.web_ports:
-                            self.web_ports.append(port)
+            elif attack == 'dns_enumeration':
+                # DNS enumeration works best with discovered domains
+                if self.discovered_domains:
+                    self.results[attack] = self.dns_scanner.comprehensive_dns_enumeration(
+                        self.target_ip, self.discovered_domains, self.run_command
+                    )
                     
-                    # Create a summary report
-                    output_file = f"{self.output_dir}/web_detection.txt"
-                    with open(output_file, 'w') as f:
-                        f.write("=" * 80 + "\n")
-                        f.write("ipsnipe Web Service Detection Report\n")
-                        f.write("=" * 80 + "\n\n")
-                        f.write(f"Target: {self.target_ip}\n")
-                        f.write(f"Detected Web Services: {len(web_result['services'])}\n")
-                        f.write(f"Web Ports: {web_result['web_ports']}\n\n")
+                    # Add newly discovered subdomains to hosts file
+                    if (self.results[attack].get('status') == 'success' and 
+                        self.results[attack].get('new_domains')):
+                        new_subdomains = self.results[attack]['new_domains']
+                        print(f"{Colors.GREEN}🎯 DNS enumeration found {len(new_subdomains)} additional subdomains{Colors.END}")
                         
-                        for service in web_result['services']:
-                            f.write(f"Port {service['port']} ({service['protocol'].upper()}):\n")
-                            f.write(f"  URL: {service['url']}\n")
-                            f.write(f"  Status: {service['status_code']}\n")
-                            f.write(f"  Server: {service['server']}\n")
-                            if service.get('technologies'):
-                                f.write(f"  Technologies: {', '.join(service['technologies'])}\n")
-                            f.write("\n")
-                        
-                        if web_result['technologies']:
-                            f.write("Detected Technologies:\n")
-                            for tech in web_result['technologies']:
-                                f.write(f"  - {tech}\n")
-                    
-                    self.results[attack] = {
-                        'status': 'success',
-                        'output_file': output_file,
-                        'web_services_found': len(web_result['services']),
-                        'web_ports': web_result['web_ports']
-                    }
-                    
-                    print(f"{Colors.GREEN}✅ Web detection completed - Found {len(web_result['services'])} web service(s){Colors.END}")
-                    if web_result['best_target'][0]:
-                        print(f"{Colors.CYAN}🎯 Best target: {web_result['best_target'][0]}{Colors.END}")
+                        # Add new subdomains to hosts file
+                        if self.domain_manager:
+                            hosts_updated_dns = self.domain_manager.add_domains_to_hosts(new_subdomains)
+                            if hosts_updated_dns:
+                                print(f"{Colors.GREEN}✅ New subdomains added to /etc/hosts{Colors.END}")
+                                # Update our discovered domains list
+                                self.discovered_domains.extend(new_subdomains)
                 else:
-                    self.results[attack] = {
-                        'status': 'failed',
-                        'reason': 'No web services detected'
-                    }
-                    print(f"{Colors.YELLOW}⚠️  No web services detected on target{Colors.END}")
+                    print(f"{Colors.YELLOW}⚠️  DNS enumeration works best after domain discovery{Colors.END}")
+                    print(f"{Colors.CYAN}💡 Try running nmap first to discover domains, or provide a domain manually{Colors.END}")
+                    
+                    # Allow manual domain input for DNS enumeration
+                    manual_domain = input(f"{Colors.CYAN}Enter domain for DNS enumeration (or press Enter to skip): {Colors.END}").strip()
+                    if manual_domain:
+                        # Validate domain format
+                        if '.' in manual_domain and not manual_domain.startswith('.'):
+                            self.results[attack] = self.dns_scanner.comprehensive_dns_enumeration(
+                                self.target_ip, [manual_domain], self.run_command
+                            )
+                            
+                            # Add any discovered subdomains to hosts file
+                            if (self.results[attack].get('status') == 'success' and 
+                                self.results[attack].get('new_domains')):
+                                new_subdomains = self.results[attack]['new_domains']
+                                print(f"{Colors.GREEN}🎯 DNS enumeration found {len(new_subdomains)} subdomains{Colors.END}")
+                                
+                                if self.domain_manager:
+                                    hosts_updated_dns = self.domain_manager.add_domains_to_hosts([manual_domain] + new_subdomains)
+                                    if hosts_updated_dns:
+                                        print(f"{Colors.GREEN}✅ Domains added to /etc/hosts{Colors.END}")
+                                        self.discovered_domains.extend([manual_domain] + new_subdomains)
+                        else:
+                            print(f"{Colors.RED}❌ Invalid domain format{Colors.END}")
+                            self.results[attack] = {'status': 'skipped', 'reason': 'Invalid domain format'}
+                    else:
+                        self.results[attack] = {'status': 'skipped', 'reason': 'No domain provided for DNS enumeration'}
+                
+            elif attack == 'advanced_dns':
+                # Advanced DNS enumeration works best with discovered domains
+                if self.advanced_dns_scanner:
+                    if self.discovered_domains:
+                        self.results[attack] = self.advanced_dns_scanner.comprehensive_enumeration(
+                            self.target_ip, self.discovered_domains, self.run_command
+                        )
+                        
+                        # Add newly discovered domains to hosts file
+                        if (self.results[attack].get('status') == 'completed' and 
+                            self.results[attack].get('new_domains')):
+                            new_domains = self.results[attack]['new_domains']
+                            print(f"{Colors.GREEN}🎯 Advanced DNS enumeration found {len(new_domains)} new domains{Colors.END}")
+                            
+                            # Add to hosts file if we have domain manager
+                            if self.domain_manager:
+                                hosts_updated = self.domain_manager.add_domains_to_hosts(new_domains)
+                                if hosts_updated:
+                                    print(f"{Colors.GREEN}✅ New domains added to /etc/hosts{Colors.END}")
+                                    self.discovered_domains.extend(new_domains)
+                    else:
+                        print(f"{Colors.YELLOW}⚠️  Advanced DNS enumeration works best after domain discovery. Running nmap_quick first is recommended.{Colors.END}")
+                        self.results[attack] = {'status': 'skipped', 'reason': 'No domains available for enumeration'}
+                else:
+                    print(f"{Colors.RED}❌ Advanced DNS scanner not available{Colors.END}")
+                    self.results[attack] = {'status': 'error', 'reason': 'Advanced DNS scanner not initialized'}
+            
+            elif attack == 'enhanced_web':
+                # Enhanced web discovery
+                if self.enhanced_web_scanner:
+                    # Auto-discover web ports if none available
+                    active_web_ports = self.web_ports if self.web_ports else []
+                    
+                    if not active_web_ports:
+                        print(f"{Colors.CYAN}🌐 No web ports discovered yet, performing quick web port detection...{Colors.END}")
+                        if self._auto_discover_web_ports_and_domains():
+                            active_web_ports = self.web_ports
+                    
+                    if active_web_ports:
+                        self.results[attack] = self.enhanced_web_scanner.comprehensive_discovery(
+                            self.target_ip, active_web_ports, self.discovered_domains, self.run_command
+                        )
+                    else:
+                        print(f"{Colors.YELLOW}⚠️  No web services found for enhanced web discovery{Colors.END}")
+                        self.results[attack] = {'status': 'skipped', 'reason': 'No web services available'}
+                else:
+                    print(f"{Colors.RED}❌ Enhanced web scanner not available{Colors.END}")
+                    self.results[attack] = {'status': 'error', 'reason': 'Enhanced web scanner not initialized'}
+            
+            elif attack == 'theharvester':
+                # Use discovered domains if available, otherwise fallback to IP
+                if self.discovered_domains:
+                    # Run theHarvester against the primary discovered domain
+                    primary_domain = self.discovered_domains[0]
+                    print(f"{Colors.GREEN}🌐 Running theHarvester against discovered domain: {primary_domain}{Colors.END}")
+                    self.results[attack] = self.dns_scanner.theharvester_domain_scan(
+                        primary_domain, self.run_command
+                    )
+                else:
+                    self.results[attack] = self.dns_scanner.theharvester_scan(
+                        self.target_ip, self.run_command
+                    )
             
 
             
@@ -402,7 +554,7 @@ class IPSnipeApp:
         # Show web service detection summary
         if self.web_ports:
             print(f"{Colors.GREEN}🌐 Web services detected on ports: {self.web_ports}{Colors.END}")
-        elif any(scan in selected_attacks for scan in ['gobuster_common', 'gobuster_big', 'feroxbuster', 'ffuf', 'nikto', 'whatweb']):
+        elif any(scan in selected_attacks for scan in ['feroxbuster', 'ffuf', 'whatweb']):
             print(f"{Colors.YELLOW}⚠️  No web services detected - some HTTP scans were skipped{Colors.END}")
         
         print(f"{Colors.CYAN}💡 Tip: Review individual scan files for detailed results{Colors.END}")

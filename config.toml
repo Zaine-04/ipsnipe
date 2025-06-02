@@ -98,36 +98,39 @@ base_dir = "/usr/share/wordlists"
 # Small, focused wordlists that finish quickly
 # Perfect for initial reconnaissance and most CTF machines
 
-# Common directories/files (FASTEST - use this first!)
-# Standard HTB/Kali wordlist - Contains thousands of common names for comprehensive coverage
+# 🏆 HTB CHAMPION WORDLIST (Most successful in HTB environments)
+# Based on extensive HTB community research - SecLists directory-list-2.3-medium.txt
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt" │
+# │ MODIFY THIS PATH: common = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
+common = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"
 
-# Small but comprehensive list (FAST)
-# Standard HTB/Kali wordlist - Contains basic directories found on most web servers
+# 🚀 FAST HTB RECON (Quick initial scan - 2-3 minutes)
+# SecLists common.txt - Excellent hit rate for initial discovery
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: small = "/usr/share/wordlists/dirb/common.txt"                │
+# │ MODIFY THIS PATH: small = "/usr/share/seclists/Discovery/Web-Content/common.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-small = "/usr/share/wordlists/dirb/common.txt"
+small = "/usr/share/seclists/Discovery/Web-Content/common.txt"
 
-# 🐌 COMPREHENSIVE WORDLISTS (Use if fast ones don't find anything - STANDARD HTB LOCATIONS)
-# Larger wordlists that take longer but find more obscure directories
-
-# Medium wordlist (SLOWER - ~200k entries)
-# Standard Kali/HTB location - Use this if the small wordlists don't find anything interesting
-# ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: medium = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt" │
-# └───────────────────────────────────────────────────────────────────────────────────────────┘
-medium = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
-
-# Big wordlist (SLOWEST - ~1M entries)  
-# Standard Kali/HTB location - Last resort for when you're really stuck
+# 🎯 HTB BALANCED APPROACH (Good speed/coverage balance)
+# Alternative proven HTB wordlist - raft-medium gives different ordering
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: big = "/usr/share/wordlists/dirb/big.txt"                     │
+# │ MODIFY THIS PATH: medium = "/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-big = "/usr/share/wordlists/dirb/big.txt"
+medium = "/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt"
+
+# 💪 HTB COMPREHENSIVE (When you need maximum coverage)
+# SecLists big.txt - Maximum directory coverage for stubborn machines
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS PATH: big = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt" │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+big = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt"
+
+# 🔄 FALLBACK OPTIONS (For compatibility)
+# Classic dirbuster paths as fallbacks
+fallback_medium = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
+fallback_small = "/usr/share/wordlists/dirb/common.txt"
+fallback_big = "/usr/share/wordlists/dirb/big.txt"
 
 # 🚀 SECLISTS (RECOMMENDED MODERN HTB WORDLISTS)
 # SecLists is now standard on modern Kali and highly recommended for HTB
@@ -152,26 +155,25 @@ custom = "/usr/share/seclists/Discovery/Web-Content/common.txt"
 # 🔧 TOOL-SPECIFIC WORDLIST PREFERENCES
 # =====================================================================================
 # Each tool has different purposes and should use optimized wordlists:
-# • Gobuster: Directory/file enumeration
 # • Feroxbuster: Directory/file enumeration  
 # • FFUF: Virtual host/subdomain enumeration (configured in [ffuf] section)
-
-# 🏹 GOBUSTER WORDLIST PREFERENCES
-# Gobuster is excellent for directory enumeration - should use directory-focused lists
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THESE VALUES for Gobuster's preferred wordlists:                        │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-gobuster_common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
-gobuster_big = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
 
 # 🦀 FEROXBUSTER WORDLIST PREFERENCES  
 # Feroxbuster is also for directory enumeration but more modern/faster
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
 # │ MODIFY THESE VALUES for Feroxbuster's preferred wordlists:                     │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-ferox_small = "/usr/share/wordlists/dirb/common.txt"
+ferox_small = "/usr/share/seclists/Discovery/Web-Content/common.txt"
 ferox_medium = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"
 ferox_large = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt"
+
+# 🎯 HTB SPECIALIZED WORDLISTS
+# API endpoints discovery
+api_endpoints = "/usr/share/seclists/Discovery/Web-Content/api/api-endpoints.txt"
+# Parameters discovery 
+parameters = "/usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt"
+# Backup files
+backup_files = "/usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt"
 
 # =====================================================================================
 # 🗺️ NMAP SETTINGS - Network Port Scanner
@@ -252,82 +254,20 @@ enable_script_scan = true
 # └─────────────────────────────────────────────────────────────────────────────────┘
 enable_udp_scan = false
 
-# =====================================================================================
-# 🕷️ GOBUSTER SETTINGS - Web Directory/File Finder
-# =====================================================================================
-[gobuster]
-# 
-# 🤔 What is Gobuster?
-# Gobuster finds hidden directories and files on websites
-# It tries thousands of names like /admin, /login, /backup, etc.
-# 
-# 🎯 CTF Strategy: Essential for web challenges - often finds admin panels, config files, etc.
 
-# 📂 File Extensions to Look For
-# Gobuster will try each directory with these extensions
-# Example: if it finds /admin, it also tries /admin.php, /admin.html, etc.
-# 
-# 🎯 CTF Tip: .php and .txt files often contain sensitive information
-# 💡 Add more extensions if you know the target technology (.asp, .jsp, etc.)
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: extensions = "php,html,txt,js,css,zip,tar,gz,bak,old"        │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-extensions = "php,html,txt,js,css,zip,tar,gz,bak,old"
-
-# 🔢 Number of concurrent requests (parallel connections)
-# Higher = faster but may overwhelm the server
-# 50 is good for most CTF machines
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: threads = 50                                                 │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-threads = 50
-
-# ⏱️ Request timeout (how long to wait for each request)
-# 10s is usually enough for CTF machines
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: timeout = "10s"                                              │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-timeout = "10s"
-
-# 🔄 Follow HTTP redirects (301, 302, etc.)
-# false = don't follow redirects (shows you the redirect itself)
-# true = follow redirects (shows you the final destination)
-# 🎯 CTF Tip: Sometimes the redirect location itself is interesting!
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: follow_redirects = false                                     │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-follow_redirects = false
-
-# 📏 Include response length in output
-# Shows how big each response is - helps identify different content
-# Useful for spotting when pages have different content
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: include_length = true                                        │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-include_length = true
-
-# 📊 HTTP Status Codes to Report
-# 200 = OK (found something!)
-# 301/302 = redirect (might be interesting)
-# 401 = authentication required (potential target!)
-# 403 = forbidden (something is there but you can't access it - try harder!)
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: status_codes = "200,204,301,302,307,401,403"                 │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-status_codes = "200,204,301,302,307,401,403"
 
 # =====================================================================================
-# 🦀 FEROXBUSTER SETTINGS - Modern Fast Directory Finder (Alternative to Gobuster)
+# 🦀 FEROXBUSTER SETTINGS - Fast Directory Finder
 # =====================================================================================
 [feroxbuster]
 # 
 # 🤔 What is Feroxbuster?
-# A modern, fast alternative to Gobuster written in Rust
-# Generally faster and has more features than Gobuster
+# A modern, fast directory/file enumeration tool written in Rust
+# Excellent for discovering hidden web content and directories
 # 
-# 🎯 CTF Tip: Try this if Gobuster is too slow or you want more features
+# 🎯 CTF Tip: Great for finding admin panels, config files, and backup directories
 
-# File extensions (same concept as Gobuster)
+# File extensions to check
 # ┌──────────────────────────────────────────────────────────────────────────────────┐
 # │ MODIFY THIS VALUE: extensions = "php,html,txt,js,css,zip,tar,gz,bak,old,json,xml"│
 # └──────────────────────────────────────────────────────────────────────────────────┘
@@ -355,9 +295,9 @@ depth = 4
 
 # Wordlist size preference (used by ipsnipe's wordlist selection)
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: wordlist_size = "small"  # Options: small, medium, large     │
+# │ MODIFY THIS VALUE: wordlist_size = "medium"  # Options: small, medium, large    │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-wordlist_size = "small"  # Options: small, medium, large
+wordlist_size = "medium"  # Options: small, medium, large
 
 # =====================================================================================
 # 🔍 THEHARVESTER SETTINGS - Email and Subdomain Finder
@@ -390,36 +330,7 @@ limit = 500
 # └─────────────────────────────────────────────────────────────────────────────────┘
 timeout = 700
 
-# =====================================================================================
-# 🌐 DNSRECON SETTINGS - DNS Information Gathering
-# =====================================================================================
-[dnsrecon]
-# 
-# 🤔 What is DNSrecon?
-# Gathers DNS information like subdomains, mail servers, etc.
-# DNS often reveals additional attack surfaces
-# 
-# 🎯 CTF Tip: Sometimes finds internal hostnames or additional services
 
-# 📋 DNS Record Types to Look For
-# A = IP addresses, MX = mail servers, CNAME = aliases, etc.
-# Each type can reveal different information about the target
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: record_types = "A,AAAA,CNAME,MX,NS,PTR,SOA,SRV,TXT"         │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-record_types = "A,AAAA,CNAME,MX,NS,PTR,SOA,SRV,TXT"
-
-# Parallel threads for DNS queries
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: threads = 10                                                │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-threads = 10
-
-# Timeout for DNS operations
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: timeout = 700                                               │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-timeout = 700
 
 # =====================================================================================
 # ⚡ FFUF SETTINGS - Fast Web Fuzzer
@@ -427,7 +338,7 @@ timeout = 700
 [ffuf]
 # 
 # 🤔 What is ffuf?
-# Another fast web fuzzer similar to Gobuster/Feroxbuster
+# Another fast web fuzzer similar to Feroxbuster
 # Known for being extremely fast and flexible
 # 
 # 🎯 CTF Tip: Great for parameter fuzzing and finding hidden endpoints
@@ -472,35 +383,7 @@ method = "vhost"
 # └─────────────────────────────────────────────────────────────────────────────────┘
 wordlist = "/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt"
 
-# =====================================================================================
-# 🕷️ NIKTO SETTINGS - Web Vulnerability Scanner
-# =====================================================================================
-[nikto]
-# 
-# 🤔 What is Nikto?
-# Scans web servers for known vulnerabilities and misconfigurations
-# Tests for thousands of potential issues
-# 
-# 🎯 CTF Tip: Often finds quick wins like default passwords or known vulnerabilities
 
-# Output format (txt = plain text, easy to read)
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: format = "txt"                                              │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-format = "txt"
-
-# Single request timeout
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: timeout = 700                                               │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-timeout = 700
-
-# Maximum time for entire scan
-# Nikto can run for hours on large sites, so we limit it
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: max_scan_time = 700                                         │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-max_scan_time = 700
 
 # =====================================================================================
 # 🔍 WHATWEB SETTINGS - Technology Detection
@@ -611,6 +494,80 @@ include_file_sizes = true
 # ✅ UNIFIED CONFIGURATION: No more confusion about which settings apply where!
 #
 # =====================================================================================
+# 🔍 ADVANCED DNS ENUMERATION SETTINGS
+# =====================================================================================
+[advanced_dns]
+# 
+# 🤔 What is Advanced DNS Enumeration?
+# Comprehensive DNS discovery using multiple techniques:
+# • Zone transfers (AXFR attempts)
+# • Certificate transparency logs
+# • Subdomain brute force with HTB-optimized wordlists
+# • Reverse DNS analysis
+# • Integration with advanced tools (subfinder, amass, dnsrecon)
+
+# Enable certificate transparency search
+enable_certificate_transparency = true
+
+# Certificate transparency API endpoint
+cert_transparency_api = "https://crt.sh/?q=%.{domain}&output=json"
+
+# Enable reverse DNS analysis on nearby IPs
+enable_reverse_dns = true
+
+# IP range for reverse DNS testing (±N from target IP)
+reverse_dns_range = 10
+
+# Enable advanced tools integration (if available)
+enable_advanced_tools = true
+
+# Advanced tools timeout (seconds)
+advanced_tools_timeout = 300
+
+# Subdomain brute force timeout per subdomain (seconds)
+subdomain_timeout = 5
+
+# Zone transfer timeout (seconds)
+zone_transfer_timeout = 60
+
+# =====================================================================================
+# 🌐 ENHANCED WEB DISCOVERY SETTINGS  
+# =====================================================================================
+[enhanced_web]
+#
+# 🤔 What is Enhanced Web Discovery?
+# Advanced web content discovery using multiple techniques:
+# • Multi-tool directory enumeration (gobuster + custom paths)
+# • JavaScript endpoint extraction
+# • Sensitive file discovery
+# • Parameter discovery
+# • Technology fingerprinting
+
+# Enable JavaScript analysis for endpoint discovery
+enable_js_analysis = true
+
+# Enable sensitive file discovery
+enable_sensitive_files = true
+
+# Enable parameter discovery
+enable_parameter_discovery = true
+
+# Enable robots.txt and sitemap analysis
+enable_robots_analysis = true
+
+# Request timeout for web discovery (seconds)
+web_request_timeout = 10
+
+# Maximum JavaScript files to analyze per target
+max_js_files = 50
+
+# HTB-optimized file extensions for discovery
+htb_extensions = "php,html,htm,asp,aspx,jsp,txt,xml,json,js,css,zip,tar,gz,bak,old,backup,conf,config,cfg,ini,log,sql,db,sqlite,pdf,doc,docx,xls,xlsx,csv,key,pem,crt,p12"
+
+# Maximum concurrent web discovery threads
+web_discovery_threads = 20
+
+# =====================================================================================
 # 🎓 BEGINNER TIPS FOR CUSTOMIZING THIS FILE
 # =====================================================================================
 #
@@ -640,6 +597,42 @@ include_file_sizes = true
 # 💡 Remember: This file is reloaded each time you run ipsnipe,
 #     so you can experiment with different settings!
 #
+# =====================================================================================
+# 🎯 PARAMETER DISCOVERY & LFI TESTING SETTINGS
+# =====================================================================================
+[arjun]
+# Arjun parameter discovery tool settings
+threads = 25
+delay = 0
+timeout = 10
+wordlist = "default"
+
+[paramspider]
+# ParamSpider archived parameter discovery
+level = "high"
+quiet = true
+
+[wfuzz]
+# WFUZZ fuzzing settings for LFI testing
+threads = 20
+timeout = 10
+payloads = "/usr/share/seclists/Fuzzing/LFI/LFI-gracefulsecurity-linux.txt"
+
+# =====================================================================================
+# 🏗️ CMS DETECTION & ENUMERATION SETTINGS
+# =====================================================================================
+[cmseek]
+# CMSeek CMS detection settings
+threads = 10
+timeout = 30
+random_agent = true
+follow_redirect = true
+
+[http_enum]
+# Nmap http-enum script settings
+timing = "T4"
+scripts = "http-enum,http-headers,http-methods,http-title"
+
 # =====================================================================================
 # 📋 QUICK SETTINGS REFERENCE - Most Commonly Modified Values
 # =====================================================================================

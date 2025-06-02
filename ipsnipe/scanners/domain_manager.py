@@ -57,7 +57,7 @@ class DomainManager:
                 # Get full HTTP response including body
                 result = subprocess.run([
                     'curl', '-s', '-L', '--max-time', '10', '--connect-timeout', '5',
-                    '-k', '--user-agent', 'ipsnipe/1.0.6 (HTB Scanner)',
+                    '-k', '--user-agent', 'ipsnipe/2.1 (HTB Scanner)',
                     '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                     url
                 ], capture_output=True, text=True, timeout=15)

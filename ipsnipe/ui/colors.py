@@ -30,7 +30,7 @@ BANNER = r"""
     \|__|\|__|    |\_________\|__| \|__|\|__|\|__|     \|_______|
                   \|_________|                                   
 
-    ⚡ Advanced Machine Reconnaissance Framework v1.0.5 ⚡
+    ⚡ Advanced Machine Reconnaissance Framework v2.1 ⚡
     ════════════════════════════════════════════════════════
 """
 

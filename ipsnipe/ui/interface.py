@@ -185,31 +185,26 @@ to use this tool in a legal and ethical manner only.{Colors.END}
             '1': ('nmap_quick', '🔍 Nmap Quick Scan', 'Fast port discovery and service detection'),
             '2': ('nmap_full', '🔎 Nmap Full Scan', 'Comprehensive port scan with scripts'),
             '3': ('nmap_udp', '📡 Nmap UDP Scan', 'UDP port discovery (requires sudo)'),
-            '4': ('web_detect', '🌐 Web Service Detection', 'Direct HTTP/HTTPS service detection'),
-            '5': ('gobuster_common', '📁 Gobuster Common', 'Web directory enumeration (common wordlist)'),
-            '6': ('gobuster_big', '📂 Gobuster Big', 'Web directory enumeration (large wordlist)'),
-            '7': ('feroxbuster', '🦀 Feroxbuster', 'Fast recursive web content discovery'),
-            '8': ('ffuf', '💨 FFUF', 'Fast web fuzzer for content discovery'),
-            '9': ('nikto', '🔬 Nikto', 'Web vulnerability scanner'),
-            '10': ('whatweb', '🕸️  WhatWeb', 'Web technology fingerprinting'),
-            '11': ('theharvester', '📧 theHarvester', 'Email and subdomain enumeration'),
-            '12': ('dnsrecon', '🌐 DNSRecon', 'DNS enumeration and reconnaissance')
+            '4': ('feroxbuster', '🦀 Feroxbuster', 'Directory enumeration (auto-discovers web ports if needed)'),
+            '5': ('ffuf', '💨 FFUF', 'Subdomain enumeration (auto-discovers web ports if needed)'),
+            '6': ('param_lfi_scan', '🎯 Parameter Discovery & LFI Testing', 'Comprehensive parameter fuzzing and LFI testing (auto-discovers web ports)'),
+            '7': ('cms_scan', '🏗️ CMS Detection & Enumeration', 'Comprehensive CMS identification and security analysis (auto-discovers web ports)'),
+            '8': ('dns_enumeration', '🌐 DNS Enumeration', 'Comprehensive DNS enumeration with dig (zone transfers, subdomains, wildcards)'),
+            '9': ('advanced_dns', '🚀 Advanced DNS Enumeration', 'HTB-optimized DNS enumeration with certificate transparency, zone transfers, and advanced tools'),
+            '10': ('enhanced_web', '🌐 Enhanced Web Discovery', 'HTB-optimized web content discovery with JavaScript analysis and multi-tool enumeration'),
+            '11': ('theharvester', '📧 theHarvester', 'Email and subdomain enumeration')
         }
         
         print(f"\n{Colors.BOLD}Available reconnaissance modules:{Colors.END}")
         for key, (_, name, desc) in attacks.items():
             print(f"  {Colors.YELLOW}{key.rjust(2)}) {name}{Colors.END} - {desc}")
         
-        print(f"\n{Colors.PURPLE}💡 New Feature: Interruptible Scans{Colors.END}")
+        print(f"\n{Colors.PURPLE}💡 Automatic Integration:{Colors.END}")
+        print(f"{Colors.CYAN}   • Web service detection runs automatically with nmap scans{Colors.END}")
+        print(f"{Colors.CYAN}   • WhatWeb runs automatically when web ports are discovered{Colors.END}")
+        print(f"{Colors.CYAN}   • Web tools auto-discover ports if no nmap scan is run{Colors.END}")
         print(f"{Colors.CYAN}   • During scans, press 's' + Enter to skip current scan{Colors.END}")
         print(f"{Colors.CYAN}   • Press 'q' + Enter to quit all remaining scans{Colors.END}")
-        print(f"{Colors.CYAN}   • Use Ctrl+C for emergency termination{Colors.END}")
-        
-        print(f"\n{Colors.BOLD}Quick selections:{Colors.END}")
-        print(f"  {Colors.GREEN}🚀 all{Colors.END} - Run all available modules")
-        print(f"  {Colors.BLUE}🌐 web{Colors.END} - Run all web-related scans (5-10)")
-        print(f"  {Colors.PURPLE}🔍 nmap{Colors.END} - Run all Nmap scans (1-3)")
-        print(f"  {Colors.CYAN}🎯 basic{Colors.END} - Run essential scans (1,4,9,10)")
         
         while True:
             selection = input(f"\n{Colors.CYAN}Select modules (comma-separated, e.g., 1,2,4 or 'all'): {Colors.END}").strip()
@@ -223,12 +218,6 @@ to use this tool in a legal and ethical manner only.{Colors.END}
                 
                 if selection.lower() == 'all':
                     selected_attacks = [attack for attack, _, _ in attacks.values()]
-                elif selection.lower() == 'web':
-                    selected_attacks = ['gobuster_common', 'gobuster_big', 'feroxbuster', 'ffuf', 'nikto', 'whatweb']
-                elif selection.lower() == 'nmap':
-                    selected_attacks = ['nmap_quick', 'nmap_full', 'nmap_udp']
-                elif selection.lower() == 'basic':
-                    selected_attacks = ['nmap_quick', 'web_detect', 'nikto', 'whatweb']
                 else:
                     # Parse individual selections
                     choices = [choice.strip() for choice in selection.split(',')]
@@ -253,7 +242,7 @@ to use this tool in a legal and ethical manner only.{Colors.END}
                     
             except ValueError:
                 print(f"{Colors.RED}Invalid selection format. Please try again.{Colors.END}")
-                print(f"{Colors.CYAN}💡 Use numbers (1,2,3), 'all', 'web', or 'nmap'{Colors.END}")
+                print(f"{Colors.CYAN}💡 Use numbers (1,2,3) or 'all'{Colors.END}")
     
     def show_scan_summary(self, target_ip: str, output_dir: str, enhanced_mode: bool, selected_attacks: List[str]) -> bool:
         """Show scan configuration summary and get confirmation"""

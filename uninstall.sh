@@ -79,7 +79,7 @@ scan_dependencies() {
     
     # System tools
     echo -e "\n${CYAN}🛠️  System Tools:${NC}"
-    SYSTEM_TOOLS=("nmap" "gobuster" "nikto" "dnsrecon" "feroxbuster" "ffuf" "theHarvester" "whatweb" "ruby")
+    SYSTEM_TOOLS=("nmap" "feroxbuster" "ffuf" "theHarvester" "whatweb" "ruby")
     INSTALLED_TOOLS=()
     
     for tool in "${SYSTEM_TOOLS[@]}"; do
@@ -104,7 +104,7 @@ scan_dependencies() {
     done
     
     # System binaries
-    SYSTEM_BINARIES=("/usr/local/bin/dnsrecon" "/usr/local/bin/theHarvester" "/usr/local/bin/whatweb")
+    SYSTEM_BINARIES=("/usr/local/bin/theHarvester" "/usr/local/bin/whatweb")
     for binary in "${SYSTEM_BINARIES[@]}"; do
         if [[ -e "$binary" ]]; then
             FOUND_FILES+=("$binary")
@@ -320,7 +320,7 @@ uninstall_system_tools() {
         "debian")
             APT_TOOLS=()
             for tool in "${REMOVE_TOOLS[@]}"; do
-                if [[ "$tool" =~ ^(nmap|gobuster|nikto|ruby|whatweb)$ ]]; then
+                if [[ "$tool" =~ ^(nmap|ruby|whatweb)$ ]]; then
                     APT_TOOLS+=("$tool")
                 fi
             done
@@ -339,7 +339,7 @@ uninstall_system_tools() {
             if command -v brew &> /dev/null; then
                 BREW_TOOLS=()
                 for tool in "${REMOVE_TOOLS[@]}"; do
-                    if [[ "$tool" =~ ^(nmap|gobuster|nikto|feroxbuster|ffuf|ruby)$ ]]; then
+                    if [[ "$tool" =~ ^(nmap|feroxbuster|ffuf|ruby)$ ]]; then
                         BREW_TOOLS+=("$tool")
                     fi
                 done
@@ -358,7 +358,7 @@ uninstall_system_tools() {
         "arch")
             PACMAN_TOOLS=()
             for tool in "${REMOVE_TOOLS[@]}"; do
-                if [[ "$tool" =~ ^(nmap|gobuster|nikto|ruby|feroxbuster|ffuf|whatweb)$ ]]; then
+                if [[ "$tool" =~ ^(nmap|ruby|feroxbuster|ffuf|whatweb)$ ]]; then
                     PACMAN_TOOLS+=("$tool")
                 fi
             done
@@ -375,16 +375,10 @@ uninstall_system_tools() {
     esac
     
     # Remove manually installed tools
-    MANUAL_TOOLS=("dnsrecon" "theHarvester" "whatweb")
+    MANUAL_TOOLS=("theHarvester" "whatweb")
     for tool in "${REMOVE_TOOLS[@]}"; do
         if [[ " ${MANUAL_TOOLS[@]} " =~ " ${tool} " ]]; then
             case $tool in
-                "dnsrecon")
-                    if [[ -f "/usr/local/bin/dnsrecon" ]]; then
-                        sudo rm -f "/usr/local/bin/dnsrecon"
-                        echo -e "${GREEN}✅ Removed /usr/local/bin/dnsrecon${NC}"
-                    fi
-                    ;;
                 "theHarvester")
                     if [[ -f "/usr/local/bin/theHarvester" ]]; then
                         sudo rm -f "/usr/local/bin/theHarvester"
