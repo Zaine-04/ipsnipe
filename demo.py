@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """
-BoxRecon Demo Script
-Shows the interface and functionality without running actual scans
+ipsnipe Demo Script
 
-NEW FEATURES DEMONSTRATED:
-- 🔌 Custom Port Range Selection (single ports, ranges, comma-separated)
-- 🧠 Smart Web Service Detection (automatic HTTP service identification)
-- 🎯 Port-Specific Targeting (uses discovered ports for web scans)
-- ⏭️ Intelligent Skipping (skips web scans when no services found)
-- 📊 Enhanced Status Reporting (real-time scan status updates)
-- 🛡️ Port Range Validation (validates user input formats)
+Demo of ipsnipe for screenshots and testing.
 
-This demo showcases all BoxRecon features without performing actual scans.
-Perfect for testing the interface or demonstrating capabilities.
+Author: hckerhub (X: @hckerhub)  
+Website: https://hackerhub.me
+GitHub: https://github.com/hckerhub
+
+This demo showcases all ipsnipe features without performing actual scans.
+It simulates the complete reconnaissance workflow and generates sample outputs
+that demonstrate the tool's capabilities for presentations or testing.
+
+Key Features Demonstrated:
+- Interactive IP validation and menu selection
+- Port range configuration 
+- Individual tool demonstrations
+- Complete reconnaissance workflow simulation
+- Sample report generation with realistic security findings
 """
 
 import time
@@ -20,11 +25,11 @@ import sys
 import datetime
 from pathlib import Path
 
-# Import BoxRecon classes
-from boxrecon import BoxRecon, Colors, BANNER
+# Import ipsnipe classes
+from ipsnipe import ipsnipe, Colors, BANNER
 
-class BoxReconDemo(BoxRecon):
-    """Demo version of BoxRecon that simulates scans without running actual commands"""
+class ipsnipdemo(ipsnipe):
+    """Demo version of ipsnipe that simulates scans without running actual commands"""
     
     def __init__(self):
         super().__init__(skip_disclaimer=True)  # Skip disclaimer for demo
@@ -53,7 +58,7 @@ class BoxReconDemo(BoxRecon):
         # Create demo output file with enhanced formatting
         output_path = Path(self.output_dir) / output_file
         demo_content = f"""{'=' * 80}
-BoxRecon Scan Report - {description} (DEMO MODE)
+ipsnipe Scan Report - {description} (DEMO MODE)
 {'=' * 80}
 
 Command: {' '.join(command)}
@@ -93,7 +98,7 @@ Sample results would appear here in a real scan:
 🔍 MX record: htb.local -> mail.htb.local (for DNS records)
 
 This demo shows the interface without running actual scans.
-The real BoxRecon would show actual findings with emoji highlights for easy analysis.
+The real ipsnipe would show actual findings with emoji highlights for easy analysis.
 
 NEW FEATURES IN THIS VERSION:
 - 🔌 Custom port ranges (1-1000, 80,443,8080, etc.)
@@ -275,22 +280,22 @@ End of {description} Report (DEMO)
     def show_disclaimer(self):
         """Display demo disclaimer (simplified for demo mode)"""
         print(f"{Colors.YELLOW}🎭 DEMO MODE DISCLAIMER{Colors.END}")
-        print(f"{Colors.CYAN}This is a demonstration of BoxRecon's interface.{Colors.END}")
+        print(f"{Colors.CYAN}This is a demonstration of ipsnipe's interface.{Colors.END}")
         print(f"{Colors.CYAN}No actual scans will be performed.{Colors.END}")
         print(f"{Colors.WHITE}Remember: Always use security tools ethically and legally!{Colors.END}\n")
 
     def print_banner(self):
         """Display the demo banner"""
         print(f"{Colors.CYAN}{BANNER}{Colors.END}")
-        print(f"{Colors.YELLOW}Welcome to BoxRecon - Your Advanced Reconnaissance Framework!{Colors.END}")
+        print(f"{Colors.YELLOW}Welcome to ipsnipe - Your Advanced Reconnaissance Framework!{Colors.END}")
         print(f"{Colors.BLUE}Created by hckerhub | {Colors.CYAN}https://hackerhub.me{Colors.END}")
         print(f"{Colors.PURPLE}Support the project: {Colors.YELLOW}https://buymeacoffee.com/hckerhub{Colors.END}")
         print(f"{Colors.RED}🎭 DEMO MODE - No actual scans will be performed{Colors.END}\n")
 
 def main():
     """Demo main function"""
-    print(f"{Colors.BLUE}🎭 BoxRecon Demo Mode{Colors.END}")
-    print(f"{Colors.YELLOW}This demo shows BoxRecon's interface without running actual scans{Colors.END}")
+    print(f"{Colors.BLUE}🎭 ipsnipe Demo Mode{Colors.END}")
+    print(f"{Colors.YELLOW}This demo shows ipsnipe's interface without running actual scans{Colors.END}")
     print(f"{Colors.CYAN}Perfect for testing the tool or showing its capabilities{Colors.END}\n")
     
     # Show what's new in this version
@@ -301,7 +306,7 @@ def main():
     print(f"{Colors.GREEN}  ⏭️  Intelligent Skipping - Skips irrelevant scans{Colors.END}")
     
     try:
-        demo = BoxReconDemo()
+        demo = ipsnipdemo()
         
         # Demonstrate new features before running main demo
         demo.demonstrate_port_validation()

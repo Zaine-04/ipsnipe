@@ -1,8 +1,9 @@
 # =====================================================================================
-# 🛠️  BoxRecon Configuration File - Beginner-Friendly CTF Guide
+# 🛠️  ipsnipe Configuration File - Beginner-Friendly CTF Guide
+# 📋  Complete Configuration Reference for HTB Box Reconnaissance
 # =====================================================================================
 # 
-# This file controls how BoxRecon behaves during reconnaissance scans.
+# This file controls how ipsnipe behaves during reconnaissance scans.
 # All settings have been optimized for CTF environments like Hack The Box (HTB).
 # 
 # 💡 NEW TO CTFs? This guide explains what each setting does and why it matters!
@@ -20,14 +21,14 @@
 # │ MODIFY THIS VALUE: setting_name = value                                        │
 # └─────────────────────────────────────────────────────────────────────────────────┘
 # 
-# BoxRecon - Created by hckerhub
+# ipsnipe - Created by hckerhub
 # 🌐 Website: https://hackerhub.me
 # 💻 GitHub: https://github.com/hckerhub
 # ☕ Support: https://buymeacoffee.com/hckerhub
 # =====================================================================================
 
 # =====================================================================================
-# 🚀 GENERAL SETTINGS - Core BoxRecon Behavior
+# 🚀 GENERAL SETTINGS - Core ipsnipe Behavior
 # =====================================================================================
 [general]
 
@@ -64,7 +65,7 @@ default_threads = 50
 colorize_output = true
 
 # 📝 Verbose Logging
-# Shows detailed information about what BoxRecon is doing
+# Shows detailed information about what ipsnipe is doing
 # Helpful for learning and troubleshooting
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
 # │ MODIFY THIS VALUE: verbose_logging = true                                      │
@@ -79,7 +80,7 @@ verbose_logging = true
 # 🤔 What are wordlists?
 # Text files containing common directory and file names like:
 # admin, login, config, backup, etc.
-# BoxRecon uses these to find hidden parts of websites
+# ipsnipe uses these to find hidden parts of websites
 # 
 # 🎯 CTF Strategy: Start with small wordlists for speed, use big ones if you're stuck
 # 💡 Pro Tip: HTB machines usually have obvious directories, so small wordlists work well
@@ -324,7 +325,7 @@ timeout = 10
 # └─────────────────────────────────────────────────────────────────────────────────┘
 depth = 4
 
-# Wordlist size preference (used by BoxRecon's wordlist selection)
+# Wordlist size preference (used by ipsnipe's wordlist selection)
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
 # │ MODIFY THIS VALUE: wordlist_size = "small"  # Options: small, medium, large     │
 # └─────────────────────────────────────────────────────────────────────────────────┘
@@ -487,7 +488,7 @@ aggression = 1
 # =====================================================================================
 [output]
 # 
-# These settings control how BoxRecon formats and saves your scan results
+# These settings control how ipsnipe formats and saves your scan results
 # Good formatting makes it easier to find important information quickly
 
 # 📏 Maximum line length before wrapping
@@ -569,7 +570,7 @@ include_file_sizes = true
 #   • Adjust thread counts based on your internet speed
 #   • Modify status codes based on interesting responses you've seen
 #
-# 💡 Remember: This file is reloaded each time you run BoxRecon,
+# 💡 Remember: This file is reloaded each time you run ipsnipe,
 #     so you can experiment with different settings!
 #
 # =====================================================================================

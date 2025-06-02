@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-BoxRecon - A user-friendly CLI tool for machine reconnaissance
+ipsnipe - A user-friendly CLI tool for machine reconnaissance
 Author: hckerhub (X: @hckerhub)
 Website: https://hackerhub.me
 GitHub: https://github.com/hckerhub
-Version: 2.0.0
+Version: 1.0.5
 """
 
 import os
@@ -69,14 +69,16 @@ except ImportError:
 
 # ASCII Art Banner
 BANNER = """
-██████╗  ██████╗ ██╗  ██╗██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
-██╔══██╗██╔═══██╗╚██╗██╔╝██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
-██████╔╝██║   ██║ ╚███╔╝ ██████╔╝█████╗  ██║     ██║   ██║██╔██╗ ██║
-██╔══██╗██║   ██║ ██╔██╗ ██╔══██╗██╔══╝  ██║     ██║   ██║██║╚██╗██║
-██████╔╝╚██████╔╝██╔╝ ██╗██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
-╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
+ ___  ________  ________  ________   ___  ________  _______      
+|\  \|\   __  \|\   ____\|\   ___  \|\  \|\   __  \|\  ___ \     
+\ \  \ \  \|\  \ \  \___|\ \  \\ \  \ \  \ \  \|\  \ \   __/|    
+ \ \  \ \   ____\ \_____  \ \  \\ \  \ \  \ \   ____\ \  \_|/__  
+  \ \  \ \  \___|\|____|\  \ \  \\ \  \ \  \ \  \___|\ \  \_|\ \ 
+   \ \__\ \__\     ____\_\  \ \__\\ \__\ \__\ \__\    \ \_______\
+    \|__|\|__|    |\_________\|__| \|__|\|__|\|__|     \|_______|
+                  \|_________|                                   
 
-    ⚡ Advanced Machine Reconnaissance Framework v2.0.0 ⚡
+    ⚡ Advanced Machine Reconnaissance Framework v1.0.5 ⚡
     ════════════════════════════════════════════════════════
 """
 
@@ -93,7 +95,7 @@ class Colors:
     UNDERLINE = '\033[4m'
     END = '\033[0m'
 
-class BoxRecon:
+class ipsnipe:
     def __init__(self, skip_disclaimer=False, sudo_mode=None):
         self.target_ip = None
         self.output_dir = None
@@ -332,7 +334,7 @@ class BoxRecon:
         print(f"{Colors.RED}{Colors.BOLD}                           ⚠️  ETHICAL USE DISCLAIMER ⚠️{Colors.END}")
         print(f"{Colors.RED}{'=' * 80}{Colors.END}\n")
         
-        print(f"{Colors.YELLOW}BoxRecon is designed for AUTHORIZED security testing and educational purposes only.{Colors.END}\n")
+        print(f"{Colors.YELLOW}ipsnipe is designed for AUTHORIZED security testing and educational purposes only.{Colors.END}\n")
         
         print(f"{Colors.WHITE}By using this tool, you acknowledge and agree that:{Colors.END}")
         print(f"{Colors.CYAN}  • You will ONLY use this tool on systems you own or have explicit permission to test{Colors.END}")
@@ -367,9 +369,9 @@ class BoxRecon:
                 print(f"{Colors.RED}Please enter 'yes' or 'no'{Colors.END}")
 
     def print_banner(self):
-        """Display the BoxRecon banner"""
-        print(f"{Colors.CYAN}{BANNER}{Colors.END}")
-        print(f"{Colors.YELLOW}Welcome to BoxRecon - Your Advanced Reconnaissance Framework!{Colors.END}")
+        """Display the ipsnipe banner"""
+        print(BANNER)
+        print(f"{Colors.YELLOW}Welcome to ipsnipe - Your Advanced Reconnaissance Framework!{Colors.END}")
         print(f"{Colors.BLUE}Created by hckerhub | {Colors.CYAN}https://hackerhub.me{Colors.END}")
         print(f"{Colors.PURPLE}Support the project: {Colors.YELLOW}https://buymeacoffee.com/hckerhub{Colors.END}\n")
     
@@ -525,7 +527,7 @@ class BoxRecon:
                     urllib.request.install_opener(opener)
                 
                 request = urllib.request.Request(url)
-                request.add_header('User-Agent', 'BoxRecon/1.0')
+                request.add_header('User-Agent', 'ipsnipe/1.0')
                 
                 with urllib.request.urlopen(request, timeout=10) as response:
                     status_code = response.getcode()
@@ -769,7 +771,7 @@ class BoxRecon:
     def create_output_directory(self, ip: str) -> str:
         """Create output directory for results"""
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        dir_name = f"boxrecon_{ip}_{timestamp}"
+        dir_name = f"ipsnipe_{ip}_{timestamp}"
         output_dir = Path(dir_name)
         output_dir.mkdir(exist_ok=True)
         print(f"{Colors.GREEN}📁 Created output directory: {dir_name}{Colors.END}")
@@ -861,7 +863,7 @@ class BoxRecon:
             with open(output_path, 'w') as f:
                 # Header section
                 f.write("=" * 80 + "\n")
-                f.write(f"BoxRecon Scan Report - {description}\n")
+                f.write(f"ipsnipe Scan Report - {description}\n")
                 f.write("=" * 80 + "\n\n")
                 
                 if self.config['output']['include_command_details']:
@@ -930,7 +932,7 @@ class BoxRecon:
             output_path = Path(self.output_dir) / output_file
             with open(output_path, 'w') as f:
                 f.write("=" * 80 + "\n")
-                f.write(f"BoxRecon Scan Report - {description} (TIMEOUT)\n")
+                f.write(f"ipsnipe Scan Report - {description} (TIMEOUT)\n")
                 f.write("=" * 80 + "\n\n")
                 f.write(f"Command: {' '.join(command)}\n")
                 f.write(f"Target: {self.target_ip}\n")
@@ -1300,7 +1302,7 @@ class BoxRecon:
         successful_scans = sum(1 for result in self.results.values() if result['status'] == 'success')
         
         with open(summary_file, 'w') as f:
-            f.write("# ⚡ BoxRecon Reconnaissance Report\n\n")
+            f.write("# ⚡ ipsnipe Reconnaissance Report\n\n")
             
             # Executive Summary
             f.write("## 📊 Executive Summary\n\n")
@@ -1434,11 +1436,11 @@ class BoxRecon:
             # Footer
             f.write("---\n")
             f.write("## ⚠️ Ethical Use Reminder\n\n")
-            f.write("This report was generated using BoxRecon for authorized security testing purposes.\n")
+            f.write("This report was generated using ipsnipe for authorized security testing purposes.\n")
             f.write("Ensure you have proper authorization before conducting any security assessments.\n")
             f.write("The author is not responsible for any misuse of this tool or its output.\n\n")
             f.write("---\n")
-            f.write(f"*Report generated by BoxRecon v2.0.0 on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n")
+            f.write(f"*Report generated by ipsnipe v1.0.5 on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n")
             f.write(f"*Created by [hckerhub](https://hackerhub.me) | Support: [Buy Me a Coffee ☕](https://buymeacoffee.com/hckerhub)*\n")
         
         print(f"{Colors.GREEN}📋 Enhanced summary report generated: {summary_file}{Colors.END}")
@@ -1583,21 +1585,23 @@ class BoxRecon:
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description="BoxRecon - Advanced Machine Reconnaissance Framework",
+        description="ipsnipe - Advanced Machine Reconnaissance Framework",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 boxrecon.py                      # Interactive mode
-  python3 boxrecon.py --enhanced           # Force enhanced mode (sudo)
-  python3 boxrecon.py --standard           # Force standard mode (no sudo)
-  python3 boxrecon.py --skip-disclaimer    # Skip disclaimer for automation
+  python3 ipsnipe.py                      # Interactive mode
+  python3 ipsnipe.py --enhanced           # Force enhanced mode (sudo)
+  python3 ipsnipe.py --standard           # Force standard mode (no sudo)
+  python3 ipsnipe.py --skip-disclaimer    # Skip disclaimer for automation
+
+For more information, visit: https://github.com/hckerhub
         """
     )
     
     parser.add_argument(
-        '--version',
-        action='version',
-        version='BoxRecon 2.0.0'
+        '--version', 
+        action='version', 
+        version='ipsnipe 1.0.5'
     )
     
     parser.add_argument(
@@ -1629,10 +1633,10 @@ Examples:
         sudo_mode = False
     
     try:
-        boxrecon = BoxRecon(skip_disclaimer=args.skip_disclaimer, sudo_mode=sudo_mode)
-        boxrecon.run()
+        ipsnipe_tool = ipsnipe(skip_disclaimer=args.skip_disclaimer, sudo_mode=sudo_mode)
+        ipsnipe_tool.run()
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}👋 BoxRecon interrupted by user. Goodbye!{Colors.END}")
+        print(f"\n{Colors.YELLOW}👋 ipsnipe interrupted by user. Goodbye!{Colors.END}")
         sys.exit(0)
     except Exception as e:
         print(f"\n{Colors.RED}❌ An error occurred: {str(e)}{Colors.END}")

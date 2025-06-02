@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# BoxRecon Installation Script
+# ipsnipe Installation Script
 # Supports Ubuntu/Debian, macOS, and Kali Linux
 
 set -e
@@ -13,22 +13,24 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# BoxRecon Banner
+# ipsnipe Banner
 echo -e "${BLUE}"
 cat << "EOF"
-██████╗  ██████╗ ██╗  ██╗██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
-██╔══██╗██╔═══██╗╚██╗██╔╝██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
-██████╔╝██║   ██║ ╚███╔╝ ██████╔╝█████╗  ██║     ██║   ██║██╔██╗ ██║
-██╔══██╗██║   ██║ ██╔██╗ ██╔══██╗██╔══╝  ██║     ██║   ██║██║╚██╗██║
-██████╔╝╚██████╔╝██╔╝ ██╗██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
-╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
+ ___  ________  ________  ________   ___  ________  _______      
+|\  \|\   __  \|\   ____\|\   ___  \|\  \|\   __  \|\  ___ \     
+\ \  \ \  \|\  \ \  \___|\ \  \\ \  \ \  \ \  \|\  \ \   __/|    
+ \ \  \ \   ____\ \_____  \ \  \\ \  \ \  \ \   ____\ \  \_|/__  
+  \ \  \ \  \___|\|____|\  \ \  \\ \  \ \  \ \  \___|\ \  \_|\ \ 
+   \ \__\ \__\     ____\_\  \ \__\\ \__\ \__\ \__\    \ \_______\
+    \|__|\|__|    |\_________\|__| \|__|\|__|\|__|     \|_______|
+                  \|_________|                                   
 
     ⚡ Advanced Machine Reconnaissance Framework ⚡
-    ═══════════════════════════════════════════════
+    ════════════════════════════════════════════════
 EOF
 echo -e "${NC}"
 
-echo -e "${GREEN}🚀 BoxRecon Installation Script${NC}"
+echo -e "${GREEN}🚀 ipsnipe Installation Script${NC}"
 echo -e "${YELLOW}This script will check dependencies and install missing tools${NC}\n"
 
 # Detect OS
@@ -190,7 +192,7 @@ echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━�
 
 if [[ "$NEEDS_INSTALLATION" == false ]]; then
     echo -e "${GREEN}🎉 All dependencies are already satisfied!${NC}"
-    echo -e "${BLUE}💡 BoxRecon is ready to use. Run: ${YELLOW}python3 boxrecon.py${NC}"
+    echo -e "${BLUE}💡 ipsnipe is ready to use. Run: ${YELLOW}python3 ipsnipe.py${NC}"
     exit 0
 fi
 
@@ -224,7 +226,7 @@ read -r RESPONSE
 
 if [[ ! "$RESPONSE" =~ ^[Yy]$ ]]; then
     echo -e "${BLUE}💡 Installation cancelled. You can run this script again anytime.${NC}"
-    echo -e "${YELLOW}📋 BoxRecon will work with available tools, but some features may be limited.${NC}"
+    echo -e "${YELLOW}📋 ipsnipe will work with available tools, but some features may be limited.${NC}"
     exit 0
 fi
 
@@ -362,14 +364,14 @@ if ! command -v whatweb &> /dev/null; then
     esac
 fi
 
-# Make BoxRecon executable
-echo -e "\n${YELLOW}🔧 Setting up BoxRecon...${NC}"
-if [[ -f "boxrecon.py" ]]; then
-    chmod +x boxrecon.py
-    echo -e "${GREEN}✅ Made boxrecon.py executable${NC}"
+# Make ipsnipe executable
+echo -e "\n${YELLOW}🔧 Setting up ipsnipe...${NC}"
+if [[ -f "ipsnipe.py" ]]; then
+    chmod +x ipsnipe.py
+    echo -e "${GREEN}✅ Made ipsnipe.py executable${NC}"
 else
-    echo -e "${RED}❌ boxrecon.py not found in current directory${NC}"
-    echo -e "${YELLOW}💡 Make sure you're running this script from the BoxRecon directory${NC}"
+    echo -e "${RED}❌ ipsnipe.py not found in current directory${NC}"
+    echo -e "${YELLOW}💡 Make sure you're running this script from the ipsnipe directory${NC}"
 fi
 
 # Set up wordlists
@@ -447,12 +449,12 @@ for tool_pair in "${OPTIONAL_TOOLS[@]}"; do
     check_tool "$tool_name" "$command_name" || true  # Don't fail on optional tools
 done
 
-# Test BoxRecon
-echo -e "\n${YELLOW}🧪 Testing BoxRecon...${NC}"
-if python3 boxrecon.py --version &> /dev/null; then
-    echo -e "${GREEN}✅ BoxRecon is working correctly${NC}"
+# Test ipsnipe
+echo -e "\n${YELLOW}🧪 Testing ipsnipe...${NC}"
+if python3 ipsnipe.py --version &> /dev/null; then
+    echo -e "${GREEN}✅ ipsnipe is working correctly${NC}"
 else
-    echo -e "${YELLOW}⚠️  BoxRecon test inconclusive (might still work)${NC}"
+    echo -e "${YELLOW}⚠️  ipsnipe test inconclusive (might still work)${NC}"
 fi
 
 # Final message
@@ -461,17 +463,17 @@ echo -e "${GREEN}🎉 Installation completed!${NC}"
 
 if [[ "$VERIFICATION_FAILED" == false ]]; then
     echo -e "${GREEN}✅ All core tools are installed and ready to use${NC}"
-    echo -e "\n${BLUE}🚀 To start BoxRecon, run:${NC}"
-    echo -e "${YELLOW}   python3 boxrecon.py${NC}"
+    echo -e "\n${BLUE}🚀 To start ipsnipe, run:${NC}"
+    echo -e "${YELLOW}   python3 ipsnipe.py${NC}"
 else
     echo -e "${YELLOW}⚠️  Some core tools may not be available. Check the verification results above.${NC}"
-    echo -e "${BLUE}💡 BoxRecon will work with available tools, but some features may be limited.${NC}"
-    echo -e "\n${BLUE}🚀 You can still try running BoxRecon:${NC}"
-    echo -e "${YELLOW}   python3 boxrecon.py${NC}"
+    echo -e "${BLUE}💡 ipsnipe will work with available tools, but some features may be limited.${NC}"
+    echo -e "\n${BLUE}🚀 You can still try running ipsnipe:${NC}"
+    echo -e "${YELLOW}   python3 ipsnipe.py${NC}"
 fi
 
 echo -e "\n${CYAN}📋 Important Notes:${NC}"
-echo -e "${BLUE}• BoxRecon includes an ethical use disclaimer${NC}"
+echo -e "${BLUE}• ipsnipe includes an ethical use disclaimer${NC}"
 echo -e "${BLUE}• You must agree to use the tool legally and ethically${NC}"
 echo -e "${BLUE}• Some tools may require additional configuration for full functionality${NC}"
 
@@ -482,7 +484,7 @@ echo -e "${YELLOW}• config.toml - Configuration options${NC}"
 
 echo -e "\n${GREEN}Happy ethical hacking! 🎯${NC}"
 echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}BoxRecon created by hckerhub${NC}"
+echo -e "${YELLOW}ipsnipe created by hckerhub${NC}"
 echo -e "${BLUE}🌐 Website: ${CYAN}https://hackerhub.me${NC}"
 echo -e "${BLUE}🐦 X: ${CYAN}@hckerhub${NC}"
 echo -e "${BLUE}☕ Support: ${CYAN}https://buymeacoffee.com/hckerhub${NC}"

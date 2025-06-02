@@ -1,4 +1,4 @@
-# BoxRecon Requirements
+# ipsnipe Requirements
 # Python 3.8+ required
 
 # Core dependencies (built-in modules used)
@@ -20,7 +20,7 @@
 # - nikto
 # - whatweb
 
-# Optional dependencies (BoxRecon includes fallbacks)
+# Optional dependencies (ipsnipe includes fallbacks)
 toml>=0.10.2     # TOML configuration file support (optional - built-in parser available)
 
 # Optional enhancements
