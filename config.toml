@@ -149,6 +149,31 @@ big = "/usr/share/wordlists/dirb/big.txt"
 custom = "/usr/share/seclists/Discovery/Web-Content/common.txt"
 
 # =====================================================================================
+# 🔧 TOOL-SPECIFIC WORDLIST PREFERENCES
+# =====================================================================================
+# Each tool has different purposes and should use optimized wordlists:
+# • Gobuster: Directory/file enumeration
+# • Feroxbuster: Directory/file enumeration  
+# • FFUF: Virtual host/subdomain enumeration (configured in [ffuf] section)
+
+# 🏹 GOBUSTER WORDLIST PREFERENCES
+# Gobuster is excellent for directory enumeration - should use directory-focused lists
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THESE VALUES for Gobuster's preferred wordlists:                        │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+gobuster_common = "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt"
+gobuster_big = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
+
+# 🦀 FEROXBUSTER WORDLIST PREFERENCES  
+# Feroxbuster is also for directory enumeration but more modern/faster
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THESE VALUES for Feroxbuster's preferred wordlists:                     │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+ferox_small = "/usr/share/wordlists/dirb/common.txt"
+ferox_medium = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"
+ferox_large = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt"
+
+# =====================================================================================
 # 🗺️ NMAP SETTINGS - Network Port Scanner
 # =====================================================================================
 [nmap]

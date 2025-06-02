@@ -191,6 +191,56 @@ class WebScanners:
         print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using directory wordlist for FFUF{Colors.END}")
         return self.get_wordlist_path('common')
     
+    def get_gobuster_wordlist_path(self, scan_type: str = 'common') -> str:
+        """Get the path to a Gobuster-specific wordlist file"""
+        from ..ui.colors import Colors
+        
+        wordlist_config = self.config['wordlists']
+        
+        # Use tool-specific wordlist preferences
+        if scan_type == 'common':
+            wordlist_key = 'gobuster_common'
+        elif scan_type == 'big':
+            wordlist_key = 'gobuster_big'
+        else:
+            wordlist_key = 'gobuster_common'  # Default fallback
+        
+        if wordlist_key in wordlist_config:
+            wordlist_path = wordlist_config[wordlist_key]
+            if Path(wordlist_path).exists():
+                print(f"{Colors.GREEN}📋 Using Gobuster-optimized wordlist: {wordlist_path}{Colors.END}")
+                return wordlist_path
+        
+        # Fallback to generic wordlist selection
+        print(f"{Colors.YELLOW}⚠️  Gobuster-specific wordlist not found, falling back to generic selection{Colors.END}")
+        return self.get_wordlist_path(scan_type)
+    
+    def get_ferox_wordlist_path(self, size: str = 'small') -> str:
+        """Get the path to a Feroxbuster-specific wordlist file"""
+        from ..ui.colors import Colors
+        
+        wordlist_config = self.config['wordlists']
+        
+        # Use tool-specific wordlist preferences
+        if size == 'small':
+            wordlist_key = 'ferox_small'
+        elif size == 'medium':
+            wordlist_key = 'ferox_medium'
+        elif size == 'large':
+            wordlist_key = 'ferox_large'
+        else:
+            wordlist_key = 'ferox_small'  # Default fallback
+        
+        if wordlist_key in wordlist_config:
+            wordlist_path = wordlist_config[wordlist_key]
+            if Path(wordlist_path).exists():
+                print(f"{Colors.GREEN}📋 Using Feroxbuster-optimized wordlist: {wordlist_path}{Colors.END}")
+                return wordlist_path
+        
+        # Fallback to generic wordlist selection
+        print(f"{Colors.YELLOW}⚠️  Feroxbuster-specific wordlist not found, falling back to generic selection{Colors.END}")
+        return self.get_wordlist_path(size)
+    
     def create_minimal_wordlist(self) -> str:
         """Create a minimal wordlist if none are found"""
         minimal_wordlist = [
@@ -214,7 +264,7 @@ class WebScanners:
         if not base_url:
             return {'status': 'failed', 'reason': 'No responsive web services found'}
         
-        wordlist_path = self.get_wordlist_path('common')
+        wordlist_path = self.get_gobuster_wordlist_path('common')
         gobuster_config = self.config['gobuster']
         
         command = [
@@ -246,7 +296,7 @@ class WebScanners:
         if not base_url:
             return {'status': 'failed', 'reason': 'No responsive web services found'}
         
-        wordlist_path = self.get_wordlist_path('big')
+        wordlist_path = self.get_gobuster_wordlist_path('big')
         gobuster_config = self.config['gobuster']
         
         command = [
@@ -279,7 +329,7 @@ class WebScanners:
             return {'status': 'failed', 'reason': 'No responsive web services found'}
         
         ferox_config = self.config['feroxbuster']
-        wordlist_path = self.get_wordlist_path(ferox_config['wordlist_size'])
+        wordlist_path = self.get_ferox_wordlist_path(ferox_config['wordlist_size'])
         
         command = [
             'feroxbuster',
