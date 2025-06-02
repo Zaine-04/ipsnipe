@@ -62,17 +62,17 @@ class ConfigManager:
         """Returns the default configuration"""
         return {
             'general': {
-                'scan_timeout': 300,
+                'scan_timeout': 600,
                 'default_threads': 50,
                 'colorize_output': True,
                 'verbose_logging': True
             },
             'wordlists': {
                 'base_dir': '/usr/share/wordlists',
-                'common': '/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt',
+                'common': '/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt',
                 'small': '/usr/share/wordlists/dirb/common.txt',
                 'medium': '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt',
-                'big': '/usr/share/wordlists/dirb/big.txt',
+                'big': '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt',
                 'custom': '/usr/share/seclists/Discovery/Web-Content/common.txt'
             },
             'nmap': {
@@ -100,7 +100,6 @@ class ConfigManager:
                 'wordlist_size': 'common'
             },
             'ffuf': {
-                'extensions': '.php,.html,.txt,.js,.css,.zip,.tar,.gz,.bak,.old',
                 'threads': 50,
                 'timeout': 10,
                 'match_codes': '200,204,301,302,307,401,403',

@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 from typing import Dict, List
 from ..ui.colors import Colors
+from ..ui.progress import ScanProgressIndicator
 
 
 class ScannerCore:
@@ -138,8 +139,13 @@ class ScannerCore:
     def run_command_interruptible(self, command: List[str], output_file: str, description: str, scan_type: str = "generic") -> Dict:
         """Execute a command that can be interrupted by user input"""
         timeout = self.config['general']['scan_timeout']
-        print(f"{Colors.YELLOW}🔄 Running: {description}... (timeout: {timeout}s){Colors.END}")
-        print(f"{Colors.CYAN}💡 Press 's' + Enter to skip this scan, 'q' + Enter to quit all scans{Colors.END}")
+        
+        # Initialize and start progress indicator
+        progress = ScanProgressIndicator(description, timeout)
+        print(f"{Colors.YELLOW}🔄 Starting: {description} (timeout: {timeout//60}min){Colors.END}")
+        print(f"{Colors.CYAN}💡 Press 's' + Enter to skip, 'q' + Enter to quit all scans{Colors.END}")
+        
+        progress.start()
         
         self.skip_current_scan = False
         start_time = time.time()
@@ -162,18 +168,21 @@ class ScannerCore:
                 # Check for skip request
                 skip_request = self.check_for_skip_request()
                 if skip_request == 'quit':
-                    print(f"\n{Colors.YELLOW}🛑 User requested to quit all scans{Colors.END}")
+                    progress.stop("user_quit")
+                    print(f"{Colors.YELLOW}🛑 User requested to quit all scans{Colors.END}")
                     self._terminate_process()
                     return {'status': 'user_quit', 'output_file': output_file}
                 elif skip_request:
-                    print(f"\n{Colors.YELLOW}⏭️  Skipping {description} at user request{Colors.END}")
+                    progress.stop("skipped")
+                    print(f"{Colors.YELLOW}⏭️  Skipping {description} at user request{Colors.END}")
                     self._terminate_process()
                     return self._create_skip_report(output_file, description, start_time)
                 
                 # Check for timeout
                 elapsed = time.time() - start_time
                 if elapsed > timeout:
-                    print(f"\n{Colors.RED}⏰ {description} timed out after {timeout} seconds{Colors.END}")
+                    progress.stop("timeout")
+                    print(f"{Colors.RED}⏰ {description} timed out after {timeout//60} minutes{Colors.END}")
                     self._terminate_process()
                     return self._create_timeout_report(output_file, description, timeout)
                 
@@ -182,6 +191,9 @@ class ScannerCore:
             # Process completed normally
             end_time = time.time()
             execution_time = end_time - start_time
+            
+            # Stop progress indicator
+            progress.stop("completed", execution_time)
             
             # Get output
             stdout, stderr = self.current_process.communicate()
@@ -218,9 +230,11 @@ class ScannerCore:
                 }
                 
         except FileNotFoundError:
+            progress.stop("error")
             print(f"{Colors.RED}❌ Command not found. Please ensure required tools are installed.{Colors.END}")
             return {'status': 'not_found', 'output_file': output_file}
         except Exception as e:
+            progress.stop("error")
             print(f"{Colors.RED}❌ Error running {description}: {str(e)}{Colors.END}")
             return {'status': 'error', 'output_file': output_file, 'error': str(e)}
         finally:
@@ -281,7 +295,7 @@ class ScannerCore:
             f.write("=" * 80 + "\n")
             f.write(f"ipsnipe Scan Report - {description} (TIMEOUT)\n")
             f.write("=" * 80 + "\n\n")
-            f.write(f"Status: TIMEOUT after {timeout} seconds\n")
+            f.write(f"Status: TIMEOUT after {timeout} seconds ({timeout_mins} minutes)\n")
             f.write(f"Timeout Limit: {timeout_mins} minutes\n\n")
             f.write("The scan was terminated due to timeout.\n")
             f.write("Consider:\n")

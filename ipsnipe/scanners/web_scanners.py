@@ -20,9 +20,6 @@ class WebScanners:
     
     def should_run_web_scan(self, scan_type: str, web_ports: List[int]) -> bool:
         """Determine if web scan should run based on available web ports"""
-        print(f"{Colors.BLUE}🔍 {scan_type} Debug - Checking web ports: {web_ports}{Colors.END}")
-        print(f"{Colors.BLUE}🔍 {scan_type} Debug - Number of web ports: {len(web_ports)}{Colors.END}")
-        
         if not web_ports:
             print(f"{Colors.YELLOW}⏭️  Skipping {scan_type} - No web services detected{Colors.END}")
             print(f"{Colors.CYAN}💡 Common web ports (80, 443) may not have been identified as web services{Colors.END}")
@@ -268,47 +265,44 @@ class WebScanners:
         return run_command_func(command, 'feroxbuster.txt', 'Feroxbuster Directory Scan', 'feroxbuster')
     
     def ffuf_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
-        """Run FFUF scan"""
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Input ports: {web_ports}{Colors.END}")
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Target IP: {target_ip}{Colors.END}")
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Primary domain: {getattr(self, 'primary_domain', 'None')}{Colors.END}")
-        
-        if not self.should_run_web_scan('FFUF', web_ports):
-            print(f"{Colors.RED}❌ FFUF Debug - should_run_web_scan returned False{Colors.END}")
-            return {'status': 'skipped', 'reason': 'No web services detected'}
-        
-        print(f"{Colors.GREEN}✅ FFUF Debug - should_run_web_scan passed, proceeding...{Colors.END}")
-        
-        port, base_url = self.get_best_web_port(target_ip, web_ports)
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Best port: {port}, Base URL: {base_url}{Colors.END}")
-        
-        if not base_url:
-            print(f"{Colors.RED}❌ FFUF Debug - No base URL found{Colors.END}")
-            return {'status': 'failed', 'reason': 'No responsive web services found'}
+        """Run FFUF subdomain enumeration scan"""
+        # For subdomain enumeration, we need a domain name, not just an IP
+        if not hasattr(self, 'primary_domain') or not self.primary_domain:
+            print(f"{Colors.YELLOW}⏭️  Skipping FFUF Subdomain Scan - No domain name available{Colors.END}")
+            print(f"{Colors.CYAN}💡 FFUF subdomain enumeration requires a domain name (e.g., example.htb){Colors.END}")
+            print(f"{Colors.CYAN}💡 Domain discovery must run first to identify the target domain{Colors.END}")
+            return {'status': 'skipped', 'reason': 'No domain name available for subdomain enumeration'}
         
         ffuf_config = self.config['ffuf']
-        wordlist_path = self.get_wordlist_path('common')
+        wordlist_path = self.get_wordlist_path('common')  # This will use the subdomain wordlist
         
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Wordlist: {wordlist_path}{Colors.END}")
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Extensions: {ffuf_config['extensions']}{Colors.END}")
+        # Extract base domain from primary domain (e.g., app.example.htb -> example.htb)
+        domain_parts = self.primary_domain.split('.')
+        if len(domain_parts) >= 2:
+            base_domain = '.'.join(domain_parts[-2:])  # Get last two parts (example.htb)
+        else:
+            base_domain = self.primary_domain
+        
+        print(f"{Colors.GREEN}🌐 Running FFUF subdomain enumeration on: {base_domain}{Colors.END}")
         
         command = [
             'ffuf',
-            '-u', f"{base_url}/FUZZ",
+            '-u', f"http://FUZZ.{base_domain}",  # Subdomain enumeration pattern
             '-w', wordlist_path,
-            '-e', ffuf_config['extensions'],
             '-t', str(ffuf_config['threads']),
             '-timeout', str(ffuf_config['timeout']),
             '-mc', ffuf_config['match_codes'],
             '-s'  # Silent mode
         ]
         
+        # Add HTTPS variant as well if port 443 is open
+        if 443 in web_ports:
+            print(f"{Colors.CYAN}💡 Will also test HTTPS subdomains{Colors.END}")
+        
         if ffuf_config['filter_size']:
             command.extend(['-fs', ffuf_config['filter_size']])
         
-        print(f"{Colors.BLUE}🔍 FFUF Debug - Final command: {' '.join(command)}{Colors.END}")
-        
-        return run_command_func(command, 'ffuf.txt', 'FFUF Directory Scan', 'ffuf')
+        return run_command_func(command, 'ffuf_subdomains.txt', 'FFUF Subdomain Enumeration', 'ffuf')
     
     def nikto_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
         """Run Nikto web vulnerability scan"""

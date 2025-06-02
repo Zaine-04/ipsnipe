@@ -151,8 +151,10 @@ class IPSnipeApp:
     
     def run_attacks(self, selected_attacks: List[str], port_range: str = None):
         """Execute selected attacks with optional port range"""
+        timeout_mins = self.config['general']['scan_timeout'] // 60
+        
         print(f"\n{Colors.BOLD}{Colors.GREEN}🚀 Starting reconnaissance on {self.target_ip}...{Colors.END}")
-        print(f"{Colors.CYAN}📋 {len(selected_attacks)} scan(s) selected{Colors.END}")
+        print(f"{Colors.CYAN}📋 {len(selected_attacks)} scan(s) selected (timeout: {timeout_mins} minutes each){Colors.END}")
         print(f"{Colors.PURPLE}⏸️  During scans: Press 's' + Enter to skip current scan, 'q' + Enter to quit all{Colors.END}\n")
         
         # Get port range for nmap scans if needed
@@ -256,9 +258,6 @@ class IPSnipeApp:
                 )
                 
             elif attack == 'ffuf':
-                print(f"{Colors.BLUE}🔍 Main App Debug - Current web_ports before ffuf: {self.web_ports}{Colors.END}")
-                print(f"{Colors.BLUE}🔍 Main App Debug - Current open_ports: {self.open_ports}{Colors.END}")
-                
                 self.results[attack] = self.web_scanners.ffuf_scan(
                     self.target_ip, self.web_ports, self.run_command
                 )
