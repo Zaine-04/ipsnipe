@@ -302,4 +302,66 @@ class NmapScanner:
         self.web_ports.sort()
         
         if potential_web_ports:
-            print(f"{Colors.CYAN}🌐 Detected web services by response testing: {potential_web_ports}{Colors.END}") 
+            print(f"{Colors.CYAN}🌐 Detected web services by response testing: {potential_web_ports}{Colors.END}")
+    
+    def domain_enhanced_scan(self, domain: str, run_command_func, port_list: str) -> Dict:
+        """Run enhanced nmap scan using domain name for better service detection"""
+        
+        # Build enhanced nmap command with domain
+        command = ['nmap']
+        
+        if self.enhanced_mode:
+            command.extend(['-sS', '-O'])  # SYN scan with OS detection
+        else:
+            command.extend(['-sT'])  # TCP connect scan
+        
+        # Add service detection and version scanning
+        command.extend([
+            '-sV',  # Service version detection
+            '-sC',  # Default scripts
+            '--script=http-title,http-headers,ssl-cert,ssl-enum-ciphers',  # Specific scripts for web/ssl
+            '-p', port_list,
+            domain
+        ])
+        
+        output_file = f"nmap_domain_enhanced_{domain.replace('.', '_')}.txt"
+        
+        print(f"{Colors.CYAN}🔍 Running enhanced nmap scan on {domain} (ports: {port_list})...{Colors.END}")
+        
+        result = run_command_func(command, output_file, f"Enhanced nmap scan on {domain}", "nmap")
+        
+        # If successful, parse the results for better service information
+        if result.get('status') == 'success':
+            # Parse the output to update service information
+            try:
+                output_path = f"{run_command_func.__self__.scanner_core.output_dir}/{output_file}"
+                with open(output_path, 'r') as f:
+                    content = f.read()
+                    
+                print(f"{Colors.GREEN}📄 Enhanced scan results:{Colors.END}")
+                
+                # Look for enhanced service information
+                lines = content.split('\n')
+                
+                for line in lines:
+                    # Look for HTTP titles
+                    if 'http-title:' in line:
+                        title_match = re.search(r'http-title:\s*(.+)', line)
+                        if title_match:
+                            title = title_match.group(1).strip()
+                            print(f"{Colors.GREEN}   📄 HTTP Title: {title}{Colors.END}")
+                    
+                    # Look for SSL certificate info
+                    elif 'ssl-cert:' in line and 'Subject:' in line:
+                        print(f"{Colors.CYAN}   🔒 SSL Certificate info found{Colors.END}")
+                    
+                    # Look for interesting HTTP headers
+                    elif 'Server:' in line:
+                        print(f"{Colors.BLUE}   🖥️  {line.strip()}{Colors.END}")
+                
+                print(f"{Colors.GREEN}✅ Enhanced domain scan completed with additional service details{Colors.END}")
+                
+            except Exception as e:
+                print(f"{Colors.YELLOW}⚠️  Could not parse enhanced scan results: {str(e)}{Colors.END}")
+        
+        return result 

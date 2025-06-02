@@ -16,6 +16,7 @@ class WebScanners:
     def __init__(self, config: Dict):
         self.config = config
         self.responsive_web_ports = []
+        self.primary_domain = None
     
     def should_run_web_scan(self, scan_type: str, web_ports: List[int]) -> bool:
         """Determine if web scan should run based on available web ports"""
@@ -80,18 +81,26 @@ class WebScanners:
         
         return {'responsive': False, 'port': port}
     
+    def set_primary_domain(self, domain: str):
+        """Set the primary domain to use for web scanning"""
+        self.primary_domain = domain
+        print(f"{Colors.CYAN}🔧 Web scanners will use domain: {domain}{Colors.END}")
+    
     def get_best_web_port(self, target_ip: str, web_ports: List[int]) -> tuple:
         """Get the best responsive web port and URL"""
         if not web_ports:
             return None, None
         
+        # Use domain name if available
+        scan_target = self.primary_domain if self.primary_domain else target_ip
+        
         # Test responsiveness of web ports
         responsive_ports = []
         
-        print(f"{Colors.YELLOW}🔍 Testing web port responsiveness...{Colors.END}")
+        print(f"{Colors.YELLOW}🔍 Testing web port responsiveness on {scan_target}...{Colors.END}")
         
         for port in web_ports[:5]:  # Test up to 5 ports to avoid delays
-            result = self.test_web_port_responsiveness(target_ip, port)
+            result = self.test_web_port_responsiveness(scan_target, port)
             if result['responsive']:
                 responsive_ports.append(result)
                 print(f"{Colors.GREEN}✅ {result['url']} - {result['status_code']} ({result['server']}){Colors.END}")
@@ -99,7 +108,9 @@ class WebScanners:
         if not responsive_ports:
             print(f"{Colors.YELLOW}⚠️  No responsive web services found on tested ports{Colors.END}")
             # Return the first web port with HTTP as fallback
-            return web_ports[0], f"http://{target_ip}:{web_ports[0]}"
+            protocol = 'https' if web_ports[0] in [443, 8443] else 'http'
+            fallback_url = f"{protocol}://{scan_target}:{web_ports[0]}"
+            return web_ports[0], fallback_url
         
         # Store responsive ports for later use
         self.responsive_web_ports = [p['url'] for p in responsive_ports]
@@ -117,7 +128,11 @@ class WebScanners:
         best_port_info = min(responsive_ports, key=port_priority)
         port = int(best_port_info['url'].split(':')[-1])
         
-        print(f"{Colors.GREEN}🎯 Selected target: {best_port_info['url']}{Colors.END}")
+        if self.primary_domain:
+            print(f"{Colors.GREEN}🎯 Selected target: {best_port_info['url']} (using domain){Colors.END}")
+        else:
+            print(f"{Colors.GREEN}🎯 Selected target: {best_port_info['url']}{Colors.END}")
+        
         return port, best_port_info['url']
     
     def get_wordlist_path(self, wordlist_type: str) -> str:
