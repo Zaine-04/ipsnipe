@@ -151,33 +151,102 @@ class DomainManager:
             print(f"{Colors.GREEN}🌐 Discovered domains: {valid_domains}{Colors.END}")
         else:
             print(f"{Colors.YELLOW}⚠️  No domains discovered from HTTP responses{Colors.END}")
-            # Try common HTB domain patterns
-            common_htb_domains = self._guess_htb_domains()
-            if common_htb_domains:
-                print(f"{Colors.CYAN}💡 Trying common HTB domain patterns: {common_htb_domains}{Colors.END}")
-                valid_domains.extend(common_htb_domains)
+            print(f"{Colors.CYAN}💡 Only actual discovered domains will be added to hosts file{Colors.END}")
         
         self.discovered_domains.update(valid_domains)
         return valid_domains
     
-    def _guess_htb_domains(self) -> List[str]:
-        """Guess common HTB domain patterns"""
-        # Get the last octet of IP for machine name guessing
-        octets = self.target_ip.split('.')
-        if len(octets) == 4:
-            last_octet = octets[-1]
+    def discover_domains_with_whatweb(self, target_ip: str, web_ports: List[int]) -> List[str]:
+        """Use whatweb to discover domains from HTTP headers and redirects"""
+        print(f"{Colors.YELLOW}🔍 Using whatweb to discover domains from HTTP headers...{Colors.END}")
+        
+        discovered_domains = set()
+        
+        for port in web_ports:
+            # Determine protocol
+            protocol = 'https' if port in [443, 8443] else 'http'
+            url = f"{protocol}://{target_ip}:{port}"
             
-            # Common HTB patterns
-            guesses = [
-                f"machine{last_octet}.htb",
-                f"box{last_octet}.htb", 
-                f"target.htb",
-                f"machine.htb",
-                f"www.machine.htb",
-            ]
+            print(f"{Colors.CYAN}   Analyzing {url} with whatweb...{Colors.END}")
             
-            return guesses
-        return []
+            try:
+                # Run whatweb with verbose output to get headers
+                command = [
+                    'whatweb',
+                    '--log-verbose=-',  # Verbose output to stdout
+                    '--aggression=3',   # More aggressive for better header detection
+                    '--no-errors',
+                    '--max-redirects=5',  # Follow redirects to catch domain changes
+                    url
+                ]
+                
+                result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0 and result.stdout:
+                    output = result.stdout
+                    
+                    # Parse whatweb output for domains - HTB optimized patterns
+                    domain_patterns = [
+                        # HTB/CTF specific patterns (highest priority)
+                        r'RedirectLocation\[([a-zA-Z0-9.-]+\.htb)[/\]]',
+                        r'Location:\s*https?://([a-zA-Z0-9.-]+\.htb)',
+                        r'Host:\s*([a-zA-Z0-9.-]+\.htb)',
+                        r'Title\[.*?([a-zA-Z0-9-]+\.htb).*?\]',
+                        
+                        # Other CTF platforms
+                        r'RedirectLocation\[([a-zA-Z0-9.-]+\.(?:thm|local|box))[/\]]',
+                        r'Location:\s*https?://([a-zA-Z0-9.-]+\.(?:thm|local|box))',
+                        r'Host:\s*([a-zA-Z0-9.-]+\.(?:thm|local|box))',
+                        r'Title\[.*?([a-zA-Z0-9-]+\.(?:thm|local|box)).*?\]',
+                        
+                        # Generic redirect patterns (lower priority)
+                        r'RedirectLocation\[https?://([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})[/\]]',
+                        r'Location:\s*https?://([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+                        
+                        # Server and host patterns
+                        r'Host:\s*([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+                        r'Server:\s*([a-zA-Z0-9.-]+\.(?:htb|thm|local|box))',
+                        
+                        # Content-based patterns for HTB
+                        r'content["\'].*?([a-zA-Z0-9-]+\.htb)',
+                        r'href["\'].*?([a-zA-Z0-9-]+\.htb)',
+                        r'src["\'].*?([a-zA-Z0-9-]+\.htb)',
+                    ]
+                    
+                    for pattern in domain_patterns:
+                        matches = re.findall(pattern, output, re.IGNORECASE)
+                        for match in matches:
+                            # Validate domain
+                            if (not re.match(r'^\d+\.\d+\.\d+\.\d+$', match) and 
+                                '.' in match and 
+                                len(match) > 3 and
+                                not match.endswith(('.com', '.org', '.net', '.gov', '.edu', '.io'))):
+                                discovered_domains.add(match.lower())
+                                print(f"{Colors.GREEN}   🎯 Found domain in whatweb output: {match.lower()}{Colors.END}")
+                    
+                    # Debug: Show relevant parts of whatweb output
+                    if any(keyword in output.lower() for keyword in ['location', 'redirect', 'host', '.htb', '.thm', '.local', '.box']):
+                        print(f"{Colors.CYAN}   📄 Relevant whatweb output:{Colors.END}")
+                        for line in output.split('\n'):
+                            if any(keyword in line.lower() for keyword in ['location', 'redirect', 'host', '.htb', '.thm', '.local', '.box']):
+                                print(f"      {line.strip()}")
+                
+                else:
+                    print(f"{Colors.YELLOW}   ⚠️  Whatweb scan failed for {url}{Colors.END}")
+                    
+            except Exception as e:
+                print(f"{Colors.YELLOW}   ⚠️  Error running whatweb on {url}: {str(e)}{Colors.END}")
+        
+        valid_domains = list(discovered_domains)
+        
+        if valid_domains:
+            print(f"{Colors.GREEN}🌐 Whatweb discovered domains: {valid_domains}{Colors.END}")
+        else:
+            print(f"{Colors.YELLOW}⚠️  No domains discovered by whatweb{Colors.END}")
+        
+        self.discovered_domains.update(valid_domains)
+        return valid_domains
+
     
     def backup_hosts_file(self) -> bool:
         """Create a backup of the current /etc/hosts file"""

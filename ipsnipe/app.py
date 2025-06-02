@@ -64,41 +64,50 @@ class IPSnipeApp:
             print(f"{Colors.YELLOW}⚠️  Skipping domain discovery - no web ports or domain manager not initialized{Colors.END}")
             return False
         
-        print(f"\n{Colors.BOLD}{Colors.BLUE}🌐 Automatic Domain Discovery Phase{Colors.END}")
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🌐 HTB-Optimized Domain Discovery Phase{Colors.END}")
         print("-" * 60)
         print(f"{Colors.GREEN}🎯 Web ports detected: {self.web_ports}{Colors.END}")
-        print(f"{Colors.CYAN}🔍 Analyzing HTTP responses for domain names (*.htb, *.local, redirects, etc.){Colors.END}")
+        print(f"{Colors.CYAN}🔍 Running whatweb to capture HTTP headers and discover domains{Colors.END}")
+        print(f"{Colors.CYAN}   Looking for: *.htb, *.local, *.box domains, redirects, headers{Colors.END}")
         
         # Show sudo status for hosts file operations
         if self.enhanced_mode:
-            print(f"{Colors.GREEN}🔧 Enhanced mode enabled - will use sudo for hosts file operations{Colors.END}")
+            print(f"{Colors.GREEN}🔧 Enhanced mode enabled - will use sudo for /etc/hosts operations{Colors.END}")
         else:
-            print(f"{Colors.YELLOW}⚠️  Standard mode - hosts file operations may require manual intervention{Colors.END}")
+            print(f"{Colors.YELLOW}⚠️  Standard mode - /etc/hosts operations may require manual intervention{Colors.END}")
         
-        # Build web services list for domain discovery
-        web_services = []
-        for port in self.web_ports:
-            protocol = 'https' if port in [443, 8443] else 'http'
-            web_services.append({
-                'url': f"{protocol}://{self.target_ip}:{port}",
-                'port': port,
-                'protocol': protocol
-            })
+        # Step 1: Run whatweb for domain discovery (primary method for HTB)
+        print(f"{Colors.CYAN}🌐 Step 1: Running whatweb scan to capture headers and domains...{Colors.END}")
         
-        # Discover domains from HTTP responses
-        print(f"{Colors.CYAN}🌐 Testing {len(web_services)} web service(s) for domain names...{Colors.END}")
-        discovered_domains = self.domain_manager.discover_domains_from_http(web_services)
+        # First run web detection to confirm responsive services
+        web_result = self.web_detector.quick_web_check(self.target_ip, self.web_ports)
+        if web_result['has_web_services']:
+            print(f"{Colors.GREEN}✅ Web detection confirmed {len(web_result['services'])} responsive web service(s){Colors.END}")
+            # Update web ports with confirmed responsive ones
+            confirmed_web_ports = web_result['web_ports']
+        else:
+            print(f"{Colors.YELLOW}⚠️  Web detection found no responsive services, using nmap-detected ports{Colors.END}")
+            confirmed_web_ports = self.web_ports
+        
+        # Step 2: Run whatweb domain discovery on confirmed web ports
+        print(f"{Colors.CYAN}🔍 Step 2: Whatweb analyzing {confirmed_web_ports} for domain discovery...{Colors.END}")
+        discovered_domains = self.domain_manager.discover_domains_with_whatweb(self.target_ip, confirmed_web_ports)
         
         if discovered_domains:
+            print(f"{Colors.GREEN}🎯 Step 3: Domains discovered by whatweb: {discovered_domains}{Colors.END}")
             self.discovered_domains.extend(discovered_domains)
             
-            # Backup hosts file
+            # Step 4: Backup hosts file
+            print(f"{Colors.CYAN}🛡️  Step 4: Creating /etc/hosts backup...{Colors.END}")
             self.domain_manager.backup_hosts_file()
             
-            # Add domains to hosts file
+            # Step 5: Add domains to hosts file
+            print(f"{Colors.CYAN}📝 Step 5: Adding domains to /etc/hosts...{Colors.END}")
             hosts_updated = self.domain_manager.add_domains_to_hosts(discovered_domains)
             
             if hosts_updated:
+                print(f"{Colors.GREEN}✅ /etc/hosts updated successfully{Colors.END}")
+                
                 # Verify domain resolution
                 working_domains = self.domain_manager.verify_domain_resolution(discovered_domains)
                 
@@ -132,9 +141,10 @@ class IPSnipeApp:
                     print()  # Add spacing
                     return True
             else:
-                print(f"{Colors.YELLOW}⚠️  Could not update hosts file - continuing with IP-based scanning{Colors.END}")
+                print(f"{Colors.YELLOW}⚠️  Could not update /etc/hosts - continuing with IP-based scanning{Colors.END}")
         else:
-            print(f"{Colors.YELLOW}ℹ️  No domain names discovered from web responses{Colors.END}")
+            print(f"{Colors.YELLOW}ℹ️  No domain names discovered from whatweb/HTTP responses{Colors.END}")
+            print(f"{Colors.CYAN}💡 This is normal for some targets - continuing with IP-based scanning{Colors.END}")
         
         print()  # Add spacing
         return False
@@ -170,14 +180,16 @@ class IPSnipeApp:
                 self.open_ports.extend(self.nmap_scanner.get_open_ports())
                 self.web_ports.extend(self.nmap_scanner.get_web_ports())
                 
-                # If no web services detected but we have common web ports, try response testing
+                # Enhanced web port detection for HTB scenarios (HTTP is common)
                 if not self.nmap_scanner.get_web_ports() and any(p in [80, 443, 8080, 8443] for p in self.nmap_scanner.get_open_ports()):
-                    print(f"{Colors.YELLOW}🔍 No web services detected by nmap, trying response testing...{Colors.END}")
+                    print(f"{Colors.YELLOW}🔍 No web services detected by nmap, trying response testing on common ports...{Colors.END}")
                     self.nmap_scanner.detect_web_services_by_response(self.target_ip)
                     self.web_ports.extend(self.nmap_scanner.get_web_ports())
                 
-                # Automatically trigger domain discovery if web ports found
+                # IMMEDIATE whatweb + domain discovery when web ports found (HTB optimized)
                 if self.web_ports and not domains_added_to_hosts:
+                    print(f"{Colors.GREEN}🌐 Web port(s) discovered: {self.web_ports}{Colors.END}")
+                    print(f"{Colors.CYAN}🚀 Immediately triggering whatweb scan for domain discovery...{Colors.END}")
                     domains_added_to_hosts = self._run_automatic_domain_discovery()
                 
                 first_nmap_completed = True
@@ -190,14 +202,16 @@ class IPSnipeApp:
                 self.open_ports.extend(self.nmap_scanner.get_open_ports())
                 self.web_ports.extend(self.nmap_scanner.get_web_ports())
                 
-                # If no web services detected but we have common web ports, try response testing
+                # Enhanced web port detection for HTB scenarios (HTTP is common)
                 if not self.nmap_scanner.get_web_ports() and any(p in [80, 443, 8080, 8443] for p in self.nmap_scanner.get_open_ports()):
-                    print(f"{Colors.YELLOW}🔍 No web services detected by nmap, trying response testing...{Colors.END}")
+                    print(f"{Colors.YELLOW}🔍 No web services detected by nmap, trying response testing on common ports...{Colors.END}")
                     self.nmap_scanner.detect_web_services_by_response(self.target_ip)
                     self.web_ports.extend(self.nmap_scanner.get_web_ports())
                 
-                # Automatically trigger domain discovery if web ports found
+                # IMMEDIATE whatweb + domain discovery when web ports found (HTB optimized)
                 if self.web_ports and not domains_added_to_hosts:
+                    print(f"{Colors.GREEN}🌐 Web port(s) discovered: {self.web_ports}{Colors.END}")
+                    print(f"{Colors.CYAN}🚀 Immediately triggering whatweb scan for domain discovery...{Colors.END}")
                     domains_added_to_hosts = self._run_automatic_domain_discovery()
                 
                 first_nmap_completed = True
