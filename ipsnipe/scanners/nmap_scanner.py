@@ -127,16 +127,19 @@ class NmapScanner:
             
             print(f"{Colors.BLUE}🔍 Parsing nmap output for port detection...{Colors.END}")
             
-            # Multiple patterns to catch different nmap output formats
+            # Enhanced patterns to catch different nmap output formats
             patterns = [
                 r'(\d+)/(tcp|udp)\s+open\s+(\S+)',  # Standard format: "80/tcp   open  http"
-                r'(\d+)/(tcp|udp)\s+open\s+(\S+.*)',  # With additional info
+                r'(\d+)/(tcp|udp)\s+open\s+(\S+.*?)(?:\s|$)',  # With additional info
                 r'PORT\s+STATE\s+SERVICE.*?(\d+)/(tcp|udp)\s+open\s+(\S+)',  # Table format
+                r'^(\d+)/(tcp|udp)\s+open\s+(.+?)$',  # Line-by-line parsing
             ]
             
             all_matches = []
-            for pattern in patterns:
+            for i, pattern in enumerate(patterns):
                 matches = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
+                if matches:
+                    print(f"{Colors.CYAN}   Pattern {i+1} found {len(matches)} matches{Colors.END}")
                 all_matches.extend(matches)
             
             # Remove duplicates while preserving order
@@ -153,6 +156,21 @@ class NmapScanner:
             newly_found_web_ports = []
             
             print(f"{Colors.YELLOW}📝 Raw matches found: {len(unique_matches)}{Colors.END}")
+            
+            # If no matches found, let's look for open ports manually
+            if not unique_matches:
+                print(f"{Colors.YELLOW}⚠️  No regex matches found, trying manual port detection...{Colors.END}")
+                # Look for lines that contain "open" and port numbers
+                lines = content.split('\n')
+                for line in lines:
+                    if 'open' in line.lower() and re.search(r'\d+/(tcp|udp)', line):
+                        print(f"{Colors.CYAN}   Debug line: {line.strip()}{Colors.END}")
+                        # Try to extract port manually
+                        port_match = re.search(r'(\d+)/(tcp|udp)', line)
+                        if port_match:
+                            port = int(port_match.group(1))
+                            protocol = port_match.group(2)
+                            unique_matches.append((str(port), protocol, 'unknown'))
             
             for match in unique_matches:
                 if len(match) >= 3:
@@ -175,20 +193,27 @@ class NmapScanner:
                     ]
                     
                     # Common web ports (always consider these as web services)
-                    common_web_ports = [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000, 8008, 8181, 8888, 9090]
+                    common_web_ports = [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000, 8008, 8181, 9090]
                     
                     # More aggressive web service detection
                     is_web_service = (
                         port in common_web_ports or  # Always consider common web ports
                         any(web_srv in service.lower() for web_srv in web_services) or
                         'ssl' in service.lower() or  # SSL often indicates HTTPS
-                        service.lower() in ['unknown', 'tcpwrapped']  # Unknown services on web ports
+                        service.lower() in ['unknown', 'tcpwrapped']  # Unknown services on web ports might be web
                     )
                     
                     if is_web_service and port not in self.web_ports:
                         self.web_ports.append(port)
                         newly_found_web_ports.append(port)
                         print(f"{Colors.GREEN}   → Classified as web service{Colors.END}")
+            
+            # IMPORTANT: Force classification of port 80 and 443 if they're open but not detected as web
+            for common_port in [80, 443]:
+                if common_port in self.open_ports and common_port not in self.web_ports:
+                    self.web_ports.append(common_port)
+                    newly_found_web_ports.append(common_port)
+                    print(f"{Colors.GREEN}🔧 Force-classified port {common_port} as web service (common web port){Colors.END}")
             
             # Sort the lists
             self.open_ports.sort()
@@ -202,20 +227,55 @@ class NmapScanner:
                 print(f"{Colors.CYAN}🌐 Identified {len(newly_found_web_ports)} web service(s): {newly_found_web_ports}{Colors.END}")
             else:
                 print(f"{Colors.YELLOW}⚠️  No web services detected from nmap output{Colors.END}")
-                print(f"{Colors.CYAN}💡 Web scanners will be skipped. Run manual tests if you suspect web services.{Colors.END}")
+                # Additional fallback check
+                if any(port in [80, 443, 8080, 8443] for port in self.open_ports):
+                    print(f"{Colors.CYAN}🔧 Found common web ports in open ports, adding to web services...{Colors.END}")
+                    for port in [80, 443, 8080, 8443]:
+                        if port in self.open_ports and port not in self.web_ports:
+                            self.web_ports.append(port)
+                            print(f"{Colors.GREEN}   Added port {port} as web service{Colors.END}")
+                    self.web_ports.sort()
+                else:
+                    print(f"{Colors.CYAN}💡 Web scanners will be skipped. Run manual tests if you suspect web services.{Colors.END}")
+            
+            # Show final port summary
+            print(f"{Colors.BLUE}📊 Final summary: {len(self.open_ports)} open ports, {len(self.web_ports)} web services{Colors.END}")
+            if self.web_ports:
+                print(f"{Colors.CYAN}   Web ports: {self.web_ports}{Colors.END}")
             
             # Advanced parsing for additional info
             self._parse_advanced_nmap_info(content)
             
         except Exception as e:
             print(f"{Colors.YELLOW}⚠️  Could not parse Nmap output for port detection: {e}{Colors.END}")
-            # Fallback: if we can't parse, assume common web ports are web services
-            if 80 in self.open_ports and 80 not in self.web_ports:
-                self.web_ports.append(80)
-                print(f"{Colors.YELLOW}🔄 Fallback: Adding port 80 as web service{Colors.END}")
-            if 443 in self.open_ports and 443 not in self.web_ports:
-                self.web_ports.append(443)
-                print(f"{Colors.YELLOW}🔄 Fallback: Adding port 443 as web service{Colors.END}")
+            # Enhanced fallback: if we can't parse, assume common web ports are web services
+            print(f"{Colors.CYAN}🔧 Activating enhanced fallback web service detection...{Colors.END}")
+            
+            # Try to find any open ports from the file content
+            try:
+                with open(output_file, 'r') as f:
+                    content = f.read()
+                
+                # Look for port numbers in the content
+                potential_ports = re.findall(r'(\d+)/(tcp|udp)', content)
+                if potential_ports:
+                    for port_str, proto in potential_ports:
+                        port = int(port_str)
+                        if port not in self.open_ports:
+                            self.open_ports.append(port)
+                    print(f"{Colors.GREEN}   Found potential ports: {[int(p[0]) for p in potential_ports]}{Colors.END}")
+                
+            except:
+                pass
+            
+            # Force common web ports as web services
+            for port in [80, 443, 8080, 8443]:
+                if port in self.open_ports and port not in self.web_ports:
+                    self.web_ports.append(port)
+                    print(f"{Colors.YELLOW}🔄 Fallback: Adding port {port} as web service{Colors.END}")
+            
+            self.open_ports.sort()
+            self.web_ports.sort()
     
     def _parse_advanced_nmap_info(self, content: str) -> None:
         """Parse additional information from Nmap output"""

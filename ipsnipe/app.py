@@ -256,6 +256,9 @@ class IPSnipeApp:
                 )
                 
             elif attack == 'ffuf':
+                print(f"{Colors.BLUE}🔍 Main App Debug - Current web_ports before ffuf: {self.web_ports}{Colors.END}")
+                print(f"{Colors.BLUE}🔍 Main App Debug - Current open_ports: {self.open_ports}{Colors.END}")
+                
                 self.results[attack] = self.web_scanners.ffuf_scan(
                     self.target_ip, self.web_ports, self.run_command
                 )
@@ -389,7 +392,8 @@ class IPSnipeApp:
             print(f"\n{Colors.BOLD}{Colors.GREEN}🎉 All scans completed!{Colors.END}")
         
         print(f"{Colors.CYAN}📁 Results saved in: {self.output_dir}{Colors.END}")
-        print(f"{Colors.CYAN}📋 Check SUMMARY_REPORT.md for an overview{Colors.END}")
+        print(f"{Colors.CYAN}🎯 Check FINDINGS.md for key actionable results{Colors.END}")
+        print(f"{Colors.CYAN}📋 Check SUMMARY.md for scan overview{Colors.END}")
         
         # Show web service detection summary
         if self.web_ports:

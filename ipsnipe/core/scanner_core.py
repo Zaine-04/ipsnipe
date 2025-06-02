@@ -298,48 +298,26 @@ class ScannerCore:
     def _save_scan_results(self, output_path: Path, description: str, command: List[str], 
                           start_time: float, end_time: float, execution_time: float, 
                           return_code: int, formatted_stdout: str, formatted_stderr: str) -> int:
-        """Save scan results to file and return file size"""
+        """Save scan results to file in clean format with minimal headers"""
         with open(output_path, 'w') as f:
-            # Header section
-            f.write("=" * 80 + "\n")
-            f.write(f"ipsnipe Scan Report - {description}\n")
-            f.write("=" * 80 + "\n\n")
+            # Minimal header for identification only
+            f.write(f"# {description}\n")
+            f.write(f"# Command: {' '.join(command)}\n")
+            f.write(f"# Status: {'SUCCESS' if return_code == 0 else 'FAILED'}\n")
+            f.write(f"# Duration: {execution_time:.1f}s\n")
+            f.write("#" + "=" * 78 + "\n\n")
             
-            if self.config['output']['include_command_details']:
-                f.write(f"Command: {' '.join(command)}\n")
-                f.write(f"Target: {command[-1] if command else 'N/A'}\n")  # Usually target is last
-            
-            if self.config['output']['include_timestamps']:
-                f.write(f"Start Time: {datetime.datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"End Time: {datetime.datetime.fromtimestamp(end_time).strftime('%Y-%m-%d %H:%M:%S')}\n")
-            
-            if self.config['output']['include_execution_time']:
-                f.write(f"Execution Time: {execution_time:.2f} seconds\n")
-            
-            f.write(f"Return Code: {return_code}\n")
-            f.write(f"Status: {'SUCCESS' if return_code == 0 else 'FAILED'}\n")
-            f.write("\n" + "=" * 80 + "\n\n")
-            
-            # Main output section
+            # Clean scan output only
             if formatted_stdout:
-                f.write("SCAN RESULTS:\n")
-                f.write("-" * 40 + "\n")
-                f.write(formatted_stdout)
-                f.write("\n\n")
+                # Remove color codes for clean output
+                clean_output = re.sub(r'\x1b\[[0-9;]*m', '', formatted_stdout)
+                f.write(clean_output)
             else:
-                f.write("No scan results generated.\n\n")
+                f.write("# No results found\n")
             
-            # Error section (if any)
-            if formatted_stderr:
-                f.write("ERRORS/WARNINGS:\n")
-                f.write("-" * 40 + "\n")
-                f.write(formatted_stderr)
-                f.write("\n\n")
-            
-            # Footer
-            f.write("=" * 80 + "\n")
-            f.write(f"End of {description} Report\n")
-            f.write("=" * 80 + "\n")
+            # Add stderr only if there are actual errors (not just warnings)
+            if formatted_stderr and ("error" in formatted_stderr.lower() or "failed" in formatted_stderr.lower()):
+                f.write(f"\n\n# ERRORS:\n{formatted_stderr}")
         
         return output_path.stat().st_size
     

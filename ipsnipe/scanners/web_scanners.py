@@ -20,6 +20,9 @@ class WebScanners:
     
     def should_run_web_scan(self, scan_type: str, web_ports: List[int]) -> bool:
         """Determine if web scan should run based on available web ports"""
+        print(f"{Colors.BLUE}🔍 {scan_type} Debug - Checking web ports: {web_ports}{Colors.END}")
+        print(f"{Colors.BLUE}🔍 {scan_type} Debug - Number of web ports: {len(web_ports)}{Colors.END}")
+        
         if not web_ports:
             print(f"{Colors.YELLOW}⏭️  Skipping {scan_type} - No web services detected{Colors.END}")
             print(f"{Colors.CYAN}💡 Common web ports (80, 443) may not have been identified as web services{Colors.END}")
@@ -266,15 +269,28 @@ class WebScanners:
     
     def ffuf_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
         """Run FFUF scan"""
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Input ports: {web_ports}{Colors.END}")
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Target IP: {target_ip}{Colors.END}")
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Primary domain: {getattr(self, 'primary_domain', 'None')}{Colors.END}")
+        
         if not self.should_run_web_scan('FFUF', web_ports):
+            print(f"{Colors.RED}❌ FFUF Debug - should_run_web_scan returned False{Colors.END}")
             return {'status': 'skipped', 'reason': 'No web services detected'}
         
+        print(f"{Colors.GREEN}✅ FFUF Debug - should_run_web_scan passed, proceeding...{Colors.END}")
+        
         port, base_url = self.get_best_web_port(target_ip, web_ports)
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Best port: {port}, Base URL: {base_url}{Colors.END}")
+        
         if not base_url:
+            print(f"{Colors.RED}❌ FFUF Debug - No base URL found{Colors.END}")
             return {'status': 'failed', 'reason': 'No responsive web services found'}
         
         ffuf_config = self.config['ffuf']
         wordlist_path = self.get_wordlist_path('common')
+        
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Wordlist: {wordlist_path}{Colors.END}")
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Extensions: {ffuf_config['extensions']}{Colors.END}")
         
         command = [
             'ffuf',
@@ -289,6 +305,8 @@ class WebScanners:
         
         if ffuf_config['filter_size']:
             command.extend(['-fs', ffuf_config['filter_size']])
+        
+        print(f"{Colors.BLUE}🔍 FFUF Debug - Final command: {' '.join(command)}{Colors.END}")
         
         return run_command_func(command, 'ffuf.txt', 'FFUF Directory Scan', 'ffuf')
     
