@@ -103,10 +103,12 @@ class DomainManager:
                     
                     if header_result.returncode == 0:
                         headers = header_result.stdout
+                        print(f"{Colors.CYAN}   📄 HTTP Headers received for {url}{Colors.END}")
                         
-                        # Look for domains in headers
+                        # Look for domains in headers - enhanced patterns
                         header_patterns = [
-                            r'Location:\s*https?://([a-zA-Z0-9.-]+)',
+                            r'Location:\s*https?://([a-zA-Z0-9.-]+)(?:/.*)?',  # Enhanced Location pattern
+                            r'Location:\s*([a-zA-Z0-9.-]+\.(?:htb|thm|local|box))(?:/.*)?',  # HTB-specific in Location
                             r'Server:\s*([a-zA-Z0-9.-]+)',
                             r'Host:\s*([a-zA-Z0-9.-]+)',
                         ]
@@ -114,9 +116,22 @@ class DomainManager:
                         for pattern in header_patterns:
                             matches = re.findall(pattern, headers, re.IGNORECASE)
                             for match in matches:
-                                if not re.match(r'\d+\.\d+\.\d+\.\d+', match) and \
-                                   '.' in match and len(match) > 3:
+                                # More permissive domain validation
+                                if (not re.match(r'^\d+\.\d+\.\d+\.\d+$', match) and 
+                                    '.' in match and 
+                                    len(match) > 3 and
+                                    not match.endswith(('.com', '.org', '.net', '.gov', '.edu'))):
                                     domains.add(match.lower())
+                                    print(f"{Colors.GREEN}   🎯 Found domain in headers: {match.lower()}{Colors.END}")
+                        
+                        # Debug: Show what headers we got
+                        if any(word in headers.lower() for word in ['location', 'host', 'server']):
+                            print(f"{Colors.CYAN}   🔍 Relevant headers found:{Colors.END}")
+                            for line in headers.split('\n'):
+                                if any(word in line.lower() for word in ['location', 'host', 'server']):
+                                    print(f"      {line.strip()}")
+                    else:
+                        print(f"{Colors.YELLOW}   ⚠️  No HTTP headers received from {url}{Colors.END}")
                 
             except Exception as e:
                 print(f"{Colors.YELLOW}   ⚠️  Could not analyze {url}: {str(e)}{Colors.END}")

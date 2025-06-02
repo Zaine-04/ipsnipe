@@ -61,11 +61,13 @@ class IPSnipeApp:
     def _run_automatic_domain_discovery(self) -> bool:
         """Automatically run domain discovery and enhanced nmap when web ports are found"""
         if not self.web_ports or not self.domain_manager:
+            print(f"{Colors.YELLOW}⚠️  Skipping domain discovery - no web ports or domain manager not initialized{Colors.END}")
             return False
         
         print(f"\n{Colors.BOLD}{Colors.BLUE}🌐 Automatic Domain Discovery Phase{Colors.END}")
         print("-" * 60)
         print(f"{Colors.GREEN}🎯 Web ports detected: {self.web_ports}{Colors.END}")
+        print(f"{Colors.CYAN}🔍 Analyzing HTTP responses for domain names (*.htb, *.local, redirects, etc.){Colors.END}")
         
         # Show sudo status for hosts file operations
         if self.enhanced_mode:
@@ -84,6 +86,7 @@ class IPSnipeApp:
             })
         
         # Discover domains from HTTP responses
+        print(f"{Colors.CYAN}🌐 Testing {len(web_services)} web service(s) for domain names...{Colors.END}")
         discovered_domains = self.domain_manager.discover_domains_from_http(web_services)
         
         if discovered_domains:
@@ -153,6 +156,7 @@ class IPSnipeApp:
         total_scans = len(selected_attacks)
         current_scan_num = 0
         domains_added_to_hosts = False
+        first_nmap_completed = False
         
         for attack in selected_attacks:
             current_scan_num += 1
@@ -176,6 +180,8 @@ class IPSnipeApp:
                 if self.web_ports and not domains_added_to_hosts:
                     domains_added_to_hosts = self._run_automatic_domain_discovery()
                 
+                first_nmap_completed = True
+                
             elif attack == 'nmap_full':
                 self.results[attack] = self.nmap_scanner.full_scan(
                     self.target_ip, self.run_command, port_range
@@ -194,6 +200,8 @@ class IPSnipeApp:
                 if self.web_ports and not domains_added_to_hosts:
                     domains_added_to_hosts = self._run_automatic_domain_discovery()
                 
+                first_nmap_completed = True
+                
             elif attack == 'nmap_udp':
                 self.results[attack] = self.nmap_scanner.udp_scan(
                     self.target_ip, self.run_command, port_range
@@ -206,7 +214,19 @@ class IPSnipeApp:
                 if self.web_ports and not domains_added_to_hosts:
                     domains_added_to_hosts = self._run_automatic_domain_discovery()
                 
+                first_nmap_completed = True
+                
             elif attack == 'gobuster_common':
+                # Force domain discovery before web scans if we have any open ports but missed it earlier
+                if first_nmap_completed and not domains_added_to_hosts and self.open_ports:
+                    # Check if any open ports might be web services
+                    potential_web_ports = [p for p in self.open_ports if p in [80, 443, 8080, 8443, 8000, 8888, 9000, 3000, 5000]]
+                    if potential_web_ports:
+                        print(f"{Colors.YELLOW}🔍 Detected potential web ports {potential_web_ports} - running domain discovery before web scans...{Colors.END}")
+                        self.web_ports.extend(potential_web_ports)
+                        self.web_ports = sorted(list(set(self.web_ports)))  # Remove duplicates
+                        domains_added_to_hosts = self._run_automatic_domain_discovery()
+                
                 self.results[attack] = self.web_scanners.gobuster_common(
                     self.target_ip, self.web_ports, self.run_command
                 )
@@ -298,6 +318,11 @@ class IPSnipeApp:
                     print(f"{Colors.YELLOW}⚠️  No web services detected on target{Colors.END}")
             
 
+            
+            # Final safety check: Force domain discovery if we have web ports but haven't run it yet
+            if not domains_added_to_hosts and self.web_ports:
+                print(f"{Colors.YELLOW}🔄 Final check: Web ports detected but domain discovery not run yet - running now...{Colors.END}")
+                domains_added_to_hosts = self._run_automatic_domain_discovery()
             
             # Show results status and handle user quit
             if attack in self.results:
