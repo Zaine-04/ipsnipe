@@ -37,15 +37,15 @@
 
 # ⏱️ Scan Timeout (in seconds)
 # How long to wait before giving up on a scan that's taking too long
-# 300 seconds = 5 minutes (perfect for most CTF machines)
+# 700 seconds = 11.7 minutes (increased for thorough scanning)
 # 
-# 🎯 CTF Tip: HTB machines are designed to be solved quickly, so 5 minutes is usually enough
+# 🎯 CTF Tip: HTB machines are designed to be solved quickly, but longer timeouts ensure completeness
 # 📈 Increase this if you're scanning machines with large wordlists or slow networks
 # 📉 Decrease this if you want faster results and don't mind potentially missing things
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: scan_timeout = 300                                          │
+# │ MODIFY THIS VALUE: scan_timeout = 700                                          │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-scan_timeout = 300
+scan_timeout = 700
 
 # 🔢 Default Threads
 # How many parallel connections tools will use (higher = faster but more detectable)
@@ -386,9 +386,9 @@ limit = 500
 
 # ⏱️ Timeout for the entire search process
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: timeout = 300                                               │
+# │ MODIFY THIS VALUE: timeout = 700                                               │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-timeout = 300
+timeout = 700
 
 # =====================================================================================
 # 🌐 DNSRECON SETTINGS - DNS Information Gathering
@@ -417,9 +417,9 @@ threads = 10
 
 # Timeout for DNS operations
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: timeout = 300                                               │
+# │ MODIFY THIS VALUE: timeout = 700                                               │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-timeout = 300
+timeout = 700
 
 # =====================================================================================
 # ⚡ FFUF SETTINGS - Fast Web Fuzzer
@@ -491,16 +491,16 @@ format = "txt"
 
 # Single request timeout
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: timeout = 300                                               │
+# │ MODIFY THIS VALUE: timeout = 700                                               │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-timeout = 300
+timeout = 700
 
 # Maximum time for entire scan
 # Nikto can run for hours on large sites, so we limit it
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS VALUE: max_scan_time = 300                                         │
+# │ MODIFY THIS VALUE: max_scan_time = 700                                         │
 # └─────────────────────────────────────────────────────────────────────────────────┘
-max_scan_time = 300
+max_scan_time = 700
 
 # =====================================================================================
 # 🔍 WHATWEB SETTINGS - Technology Detection
@@ -589,23 +589,26 @@ include_execution_time = true
 include_file_sizes = true
 
 # =====================================================================================
-# ⚙️ CONFIGURATION MANAGEMENT
+# ⚙️ CONFIGURATION MANAGEMENT - SINGLE SOURCE OF TRUTH
 # =====================================================================================
 #
-# 🎯 IMPORTANT: This config.toml file is the ONLY place you should modify settings!
-#    • ipsnipe/core/config.py contains only minimal fallback defaults
-#    • All your customizations should be made here in config.toml
-#    • The Python code automatically loads settings from this file
+# 🎯 IMPORTANT: This config.toml file is the SINGLE SOURCE for ALL tool settings!
+#    • Both the main system (ipsnipe.py) AND legacy system use this file
+#    • ipsnipe/core/config.py contains only minimal emergency fallbacks
+#    • All your customizations should be made HERE in config.toml
+#    • Changes here affect BOTH systems immediately
 #
 # 🔄 How it works:
-#    1. ipsnipe loads basic defaults from config.py
-#    2. Then it reads config.toml and overrides defaults with your settings
-#    3. Result: Your config.toml settings take priority over everything else
+#    1. ipsnipe loads this config.toml file as the primary configuration
+#    2. Only falls back to minimal defaults if this file is missing/corrupt
+#    3. Result: This file controls ALL tool behavior and timeouts
 #
 # 💡 This means you can:
 #    • Modify any setting in this file and it will take effect immediately
-#    • Add new settings here and they'll be available to the scanners
-#    • Remove settings from this file to fall back to defaults
+#    • Add new settings here and they'll be available to ALL scanners
+#    • One file controls everything - no more duplicate configurations!
+#
+# ✅ UNIFIED CONFIGURATION: No more confusion about which settings apply where!
 #
 # =====================================================================================
 # 🎓 BEGINNER TIPS FOR CUSTOMIZING THIS FILE

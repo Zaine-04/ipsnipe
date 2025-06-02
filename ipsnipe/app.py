@@ -370,10 +370,15 @@ class IPSnipeApp:
         self.open_ports = sorted(list(set(self.open_ports)))
         self.web_ports = sorted(list(set(self.web_ports)))
         
-        # Clean up hosts file if we added entries
+        # Leave hosts file entries in place for continued use
         if self.domain_manager and domains_added_to_hosts:
-            print(f"\n{Colors.YELLOW}🧹 Cleaning up hosts file...{Colors.END}")
-            self.domain_manager.cleanup_hosts_file()
+            print(f"\n{Colors.GREEN}💾 Keeping /etc/hosts entries for continued domain resolution{Colors.END}")
+            print(f"{Colors.CYAN}💡 Domains will remain accessible for other scans and tools{Colors.END}")
+            if self.discovered_domains:
+                print(f"{Colors.CYAN}📝 Added domains: {', '.join(self.discovered_domains)}{Colors.END}")
+            print(f"{Colors.YELLOW}🧹 To manually remove later: edit /etc/hosts and remove ipsnipe entries{Colors.END}")
+            # Commented out cleanup to preserve entries for other scans
+            # self.domain_manager.cleanup_hosts_file()
         
         # Generate summary report with domain information
         self.report_generator.generate_summary_report(

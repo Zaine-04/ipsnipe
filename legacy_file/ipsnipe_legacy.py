@@ -108,100 +108,40 @@ class ipsnipe:
         self.responsive_web_ports = []  # Store web ports that actually respond with content
     
     def load_config(self) -> Dict:
-        """Load configuration from config.toml file"""
+        """Load configuration from config.toml file (shared with main system)"""
         config_file = Path("config.toml")
         
-        # Default configuration
-        default_config = {
-            'general': {
-                'scan_timeout': 300,
-                'default_threads': 50,
-                'colorize_output': True,
-                'verbose_logging': True
-            },
-            'wordlists': {
-                'base_dir': '/usr/share/wordlists',
-                'common': '/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt',
-                'small': '/usr/share/wordlists/dirb/common.txt',
-                'medium': '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt',
-                'big': '/usr/share/wordlists/dirb/big.txt',
-                'custom': '/usr/share/seclists/Discovery/Web-Content/common.txt'
-            },
-            'nmap': {
-                'quick_ports': '1000',
-                'timing': 'T4',
-                'version_intensity': '5',
-                'enable_os_detection': True,
-                'enable_version_detection': True,
-                'enable_script_scan': True,
-                'udp_ports': 200
-            },
-            'gobuster': {
-                'extensions': 'php,html,txt,js,css,zip,tar,gz,bak,old',
-                'threads': 50,
-                'timeout': '10s',
-                'follow_redirects': False,
-                'include_length': True,
-                'status_codes': '200,204,301,302,307,401,403'
-            },
-            'feroxbuster': {
-                'extensions': 'php,html,txt,js,css,zip,tar,gz,bak,old',
-                'threads': 50,
-                'timeout': 10,
-                'depth': 2,
-                'wordlist_size': 'common'
-            },
-            'ffuf': {
-                'extensions': '.php,.html,.txt,.js,.css,.zip,.tar,.gz,.bak,.old',
-                'threads': 50,
-                'timeout': 10,
-                'match_codes': '200,204,301,302,307,401,403',
-                'filter_size': ''
-            },
-            'nikto': {
-                'format': 'txt',
-                'timeout': 300,
-                'max_scan_time': 300
-            },
-            'whatweb': {
-                'verbosity': 'verbose',
-                'aggression': 1
-            },
-            'theharvester': {
-                'data_source': 'all',
-                'limit': 100
-            },
-            'dnsrecon': {
-                'record_types': 'std',
-                'threads': 10
-            },
-            'output': {
-                'max_line_length': 120,
-                'truncate_long_lines': True,
-                'highlight_important': True,
-                'include_timestamps': True,
-                'include_command_details': True,
-                'include_execution_time': True,
-                'include_file_sizes': True
+        # Import the main configuration system for consistency
+        try:
+            # Try to use the main config system if available
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+            from ipsnipe.core.config import ConfigManager
+            
+            config = ConfigManager.load_config()
+            print(f"{Colors.GREEN}✅ Legacy system using shared configuration system{Colors.END}")
+            return config
+            
+        except ImportError:
+            # Fallback to basic config loading if main system not available
+            if config_file.exists():
+                try:
+                    user_config = load_toml(config_file)
+                    print(f"{Colors.GREEN}✅ Legacy system loaded configuration from config.toml{Colors.END}")
+                    return user_config
+                except Exception as e:
+                    print(f"{Colors.YELLOW}⚠️  Error loading config.toml: {e}{Colors.END}")
+            
+            # Absolute minimal fallback
+            print(f"{Colors.YELLOW}⚠️  Using minimal fallback configuration{Colors.END}")
+            return {
+                'general': {'scan_timeout': 700, 'default_threads': 50},
+                'nmap': {'quick_ports': '1000', 'timing': 'T4'},
+                'gobuster': {'threads': 50, 'extensions': 'php,html,txt'},
+                'nikto': {'timeout': 700},
+                'wordlists': {'base_dir': '/usr/share/wordlists'}
             }
-        }
-        
-        if config_file.exists():
-            try:
-                user_config = load_toml(config_file)
-                # Merge user config with defaults
-                for section, values in user_config.items():
-                    if section in default_config:
-                        default_config[section].update(values)
-                    else:
-                        default_config[section] = values
-                print(f"{Colors.GREEN}✅ Loaded configuration from config.toml{Colors.END}")
-            except Exception as e:
-                print(f"{Colors.YELLOW}⚠️  Error loading config.toml, using defaults: {e}{Colors.END}")
-        else:
-            print(f"{Colors.YELLOW}⚠️  config.toml not found, using default configuration{Colors.END}")
-        
-        return default_config
     
     def format_output_content(self, content: str, scan_type: str) -> str:
         """Format scan output for better readability"""

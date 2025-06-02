@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Progress bar and loading effects for ipsnipe
+Timer-based progress indicators and loading effects for ipsnipe
 """
 
 import sys
@@ -10,7 +10,7 @@ from .colors import Colors
 
 
 class ProgressBar:
-    """Dynamic progress bar that updates in place without creating new lines"""
+    """Dynamic timer display that updates in place without creating new lines"""
     
     def __init__(self, description: str, total_time: int = None):
         self.description = description
@@ -18,17 +18,16 @@ class ProgressBar:
         self.start_time = None
         self.is_running = False
         self.thread = None
-        self.width = 40  # Progress bar width
         
     def start(self):
-        """Start the progress bar animation"""
+        """Start the timer animation"""
         self.start_time = time.time()
         self.is_running = True
         self.thread = threading.Thread(target=self._animate, daemon=True)
         self.thread.start()
     
     def stop(self, status: str = "completed"):
-        """Stop the progress bar and show final status"""
+        """Stop the timer and show final status"""
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=1)
@@ -51,7 +50,7 @@ class ProgressBar:
             print(f"{Colors.CYAN}🔄 {self.description} - {status} ({elapsed:.1f}s){Colors.END}")
     
     def _animate(self):
-        """Animate the progress bar"""
+        """Animate the progress timer without visual bar"""
         animation_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         char_index = 0
         
@@ -59,29 +58,31 @@ class ProgressBar:
             elapsed = time.time() - self.start_time
             
             if self.total_time:
-                # Show percentage if total time is known
+                # Show progress with percentage and time remaining
                 progress = min(elapsed / self.total_time, 1.0)
-                filled = int(self.width * progress)
-                bar = "█" * filled + "░" * (self.width - filled)
                 percentage = int(progress * 100)
+                remaining = max(0, self.total_time - elapsed)
                 
-                status_line = (f"\r{Colors.CYAN}{animation_chars[char_index]} "
-                             f"{self.description} [{bar}] {percentage}% "
-                             f"({elapsed:.0f}s){Colors.END}")
-            else:
-                # Show elapsed time and spinning animation
-                mins, secs = divmod(int(elapsed), 60)
-                time_str = f"{mins:02d}:{secs:02d}" if mins > 0 else f"{secs}s"
+                # Format times
+                elapsed_mins, elapsed_secs = divmod(int(elapsed), 60)
+                elapsed_str = f"{elapsed_mins:02d}:{elapsed_secs:02d}"
                 
-                # Create a simple moving bar animation
-                pos = int(elapsed * 2) % (self.width + 5)
-                if pos < self.width:
-                    bar = "░" * pos + "█" + "░" * (self.width - pos - 1)
+                if remaining > 0:
+                    remaining_mins, remaining_secs = divmod(int(remaining), 60)
+                    remaining_str = f"{remaining_mins:02d}:{remaining_secs:02d}"
+                    time_display = f"⏱️  {elapsed_str} elapsed, {remaining_str} remaining ({percentage}%)"
                 else:
-                    bar = "░" * self.width
+                    time_display = f"⏱️  {elapsed_str} elapsed (100%+)"
                 
                 status_line = (f"\r{Colors.CYAN}{animation_chars[char_index]} "
-                             f"{self.description} [{bar}] {time_str}{Colors.END}")
+                             f"{self.description} - {time_display}{Colors.END}")
+            else:
+                # Show elapsed time only
+                mins, secs = divmod(int(elapsed), 60)
+                time_str = f"{mins:02d}:{secs:02d}" if mins > 0 else f"{secs:02d}s"
+                
+                status_line = (f"\r{Colors.CYAN}{animation_chars[char_index]} "
+                             f"{self.description} - ⏱️  {time_str} elapsed{Colors.END}")
             
             sys.stdout.write(f"\r\033[K{status_line}")
             sys.stdout.flush()
@@ -91,7 +92,7 @@ class ProgressBar:
 
 
 class ScanProgressIndicator:
-    """Specialized progress indicator for scans with timeout tracking"""
+    """Specialized timer indicator for scans with timeout tracking"""
     
     def __init__(self, description: str, timeout: int):
         self.description = description
@@ -99,17 +100,16 @@ class ScanProgressIndicator:
         self.start_time = None
         self.is_running = False
         self.thread = None
-        self.width = 50
         
     def start(self):
-        """Start the scan progress indicator"""
+        """Start the scan timer indicator"""
         self.start_time = time.time()
         self.is_running = True
         self.thread = threading.Thread(target=self._show_progress, daemon=True)
         self.thread.start()
     
     def stop(self, status: str = "completed", execution_time: float = None):
-        """Stop the progress indicator and clear the line for next output"""
+        """Stop the timer indicator and clear the line for next output"""
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=0.5)
@@ -121,7 +121,7 @@ class ScanProgressIndicator:
         # Don't print anything here - let the calling function handle status output
     
     def _show_progress(self):
-        """Show the progress animation"""
+        """Show the progress timer without visual bar"""
         spinner_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         spinner_index = 0
         
@@ -130,24 +130,20 @@ class ScanProgressIndicator:
                 elapsed = time.time() - self.start_time
                 remaining = max(0, self.timeout - elapsed)
                 
-                # Calculate progress
+                # Calculate progress percentage for color coding
                 progress = min(elapsed / self.timeout, 1.0)
-                filled = int(self.width * progress)
                 
-                # Create progress bar
-                bar = "█" * filled + "░" * (self.width - filled)
-                
-                # Format time
+                # Format elapsed time
                 elapsed_mins, elapsed_secs = divmod(int(elapsed), 60)
-                remaining_mins, remaining_secs = divmod(int(remaining), 60)
-                
                 elapsed_str = f"{elapsed_mins:02d}:{elapsed_secs:02d}"
                 
+                # Format remaining time
                 if remaining > 0:
+                    remaining_mins, remaining_secs = divmod(int(remaining), 60)
                     remaining_str = f"{remaining_mins:02d}:{remaining_secs:02d}"
-                    time_display = f"{elapsed_str} / {remaining_str} left"
+                    time_display = f"⏱️  {elapsed_str} elapsed, {remaining_str} remaining"
                 else:
-                    time_display = f"{elapsed_str} / overtime"
+                    time_display = f"⏱️  {elapsed_str} elapsed (overtime)"
                 
                 # Show different colors based on progress
                 if progress < 0.7:
@@ -157,10 +153,10 @@ class ScanProgressIndicator:
                 else:
                     color = Colors.RED
                 
-                # Build the progress line - keep it compact
-                short_desc = self.description[:35] + "..." if len(self.description) > 35 else self.description
+                # Build the progress line - compact timer format
+                short_desc = self.description[:40] + "..." if len(self.description) > 40 else self.description
                 progress_line = (f"{color}{spinner_chars[spinner_index]} "
-                               f"{short_desc:<38} [{bar}] {time_display}{Colors.END}")
+                               f"{short_desc} - {time_display}{Colors.END}")
                 
                 # Clear line completely and write progress
                 sys.stdout.write(f"\r\033[K{progress_line}")

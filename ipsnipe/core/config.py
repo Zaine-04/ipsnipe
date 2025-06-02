@@ -59,14 +59,22 @@ class ConfigManager:
     
     @staticmethod
     def get_default_config() -> Dict:
-        """Returns the minimal fallback configuration
+        """Returns MINIMAL emergency fallback configuration only
         
-        These are only basic defaults used when config.toml is missing or incomplete.
-        ALL USER CONFIGURATION SHOULD BE DONE IN config.toml - NOT HERE!
+        ⚠️  WARNING: These are EMERGENCY DEFAULTS only!
+        
+        🎯 ALL USER CONFIGURATION SHOULD BE DONE IN config.toml - NOT HERE!
+        
+        This method only provides minimal fallbacks when:
+        - config.toml is missing
+        - config.toml is corrupted
+        - TOML parsing fails
+        
+        The config.toml file is the SINGLE SOURCE OF TRUTH for all settings.
         """
         return {
             'general': {
-                'scan_timeout': 600,
+                'scan_timeout': 700,
                 'default_threads': 50,
                 'colorize_output': True,
                 'verbose_logging': True
@@ -89,7 +97,7 @@ class ConfigManager:
                 'method': 'vhost'
             },
             'nikto': {
-                'timeout': 300
+                'timeout': 700
             },
             'whatweb': {
                 'aggression': 1

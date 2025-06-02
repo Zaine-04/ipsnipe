@@ -430,7 +430,11 @@ class DomainManager:
         return domains[0]
     
     def cleanup_hosts_file(self):
-        """Remove ipsnipe entries from hosts file"""
+        """Remove ipsnipe entries from hosts file
+        
+        NOTE: This method is currently not called by default to preserve
+        hosts file entries for continued use across multiple scans.
+        """
         try:
             if self.hosts_entries_added:
                 print(f"{Colors.YELLOW}🧹 Cleaning up hosts file entries...{Colors.END}")
