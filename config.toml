@@ -88,41 +88,35 @@ verbose_logging = true
 # 🎯 CTF Strategy: Start with small wordlists for speed, use big ones if you're stuck
 # 💡 Pro Tip: HTB machines usually have obvious directories, so small wordlists work well
 
-# 📁 Base directory where wordlists are stored (STANDARD HTB/KALI LOCATION)
-# ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: base_dir = "/usr/share/wordlists"                             │
-# └─────────────────────────────────────────────────────────────────────────────────┘
-base_dir = "/usr/share/wordlists"
-
-# 🏃‍♂️ FAST WORDLISTS (Recommended for beginners - STANDARD HTB LOCATIONS)
-# Small, focused wordlists that finish quickly
-# Perfect for initial reconnaissance and most CTF machines
+# 📁 AUTO-DETECTION: ipsnipe now automatically detects wordlist locations!
+# The tool will automatically find SecLists, Dirb, and DirBuster wordlists
+# These paths below are FALLBACKS only if auto-detection fails
 
 # 🏆 HTB CHAMPION WORDLIST (Most successful in HTB environments)
-# Based on extensive HTB community research - SecLists directory-list-2.3-medium.txt
+# Auto-detection will find this at: /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: common = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt" │
+# │ FALLBACK PATH: common = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
 common = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"
 
-# 🚀 FAST HTB RECON (Quick initial scan - 2-3 minutes)
-# SecLists common.txt - Excellent hit rate for initial discovery
+# 🚀 FAST HTB RECON (Quick initial scan - 30 seconds)
+# Auto-detection will find this at: /usr/share/seclists/Discovery/Web-Content/common.txt
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: small = "/usr/share/seclists/Discovery/Web-Content/common.txt" │
+# │ FALLBACK PATH: small = "/usr/share/seclists/Discovery/Web-Content/common.txt"   │
 # └─────────────────────────────────────────────────────────────────────────────────┘
 small = "/usr/share/seclists/Discovery/Web-Content/common.txt"
 
 # 🎯 HTB BALANCED APPROACH (Good speed/coverage balance)
-# Alternative proven HTB wordlist - raft-medium gives different ordering
+# Auto-detection will find this at: /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: medium = "/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt" │
+# │ FALLBACK PATH: medium = "/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
 medium = "/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt"
 
 # 💪 HTB COMPREHENSIVE (When you need maximum coverage)
-# SecLists big.txt - Maximum directory coverage for stubborn machines
+# Auto-detection will find this at: /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt
 # ┌─────────────────────────────────────────────────────────────────────────────────┐
-# │ MODIFY THIS PATH: big = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt" │
+# │ FALLBACK PATH: big = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt" │
 # └─────────────────────────────────────────────────────────────────────────────────┘
 big = "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt"
 

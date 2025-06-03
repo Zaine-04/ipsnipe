@@ -434,3 +434,59 @@ MIT License - See [LICENSE](LICENSE) file for details.
 ---
 
 **Happy ethical hacking! 🎯** 
+
+## 🔥 New in v3.1: HTB-Optimized Wordlist Auto-Detection
+
+ipsnipe now automatically detects and categorizes wordlists in HTB environments! No more manual path configuration.
+
+### 🤖 Intelligent Wordlist Detection
+
+ipsnipe automatically scans for and categorizes wordlists from:
+
+- **🎯 SecLists** (`/usr/share/seclists`) - Primary HTB wordlist collection
+- **📚 Dirb** (`/usr/share/wordlists/dirb`) - Classic directory enumeration  
+- **🔍 DirBuster** (`/usr/share/wordlists/dirbuster`) - Traditional wordlists
+- **🏠 Custom Locations** (`~/wordlists`, `/opt/SecLists`, etc.)
+
+### 🧠 HTB-Optimized Recommendations
+
+The tool intelligently recommends wordlists based on:
+
+| Scan Type | Speed Priority | Recommended Wordlist | Estimated Time |
+|-----------|---------------|---------------------|----------------|
+| **Directory** | ⚡ Speed | `htb_speed` (common.txt) | 30 seconds |
+| **Directory** | ⚖️ Balanced | `htb_champion` (directory-list-2.3-medium.txt) | 2-5 minutes |
+| **Directory** | 🔋 Comprehensive | `htb_comprehensive` (directory-list-2.3-big.txt) | 15+ minutes |
+| **Files** | Any | `htb_files` (raft-medium-files.txt) | 5-15 minutes |
+| **API** | Any | `htb_api` (api-endpoints.txt) | 2-5 minutes |
+| **Subdomains** | ⚡ Speed | `htb_subdomains_quick` (top-5000) | 2-5 minutes |
+| **Subdomains** | 🔋 Comprehensive | `htb_subdomains` (top-100k) | 15+ minutes |
+
+### 📋 Smart Categorization
+
+Wordlists are automatically categorized by:
+
+- **🎯 Purpose**: Directory, Files, API, Subdomain discovery
+- **⚡ Speed**: Lightning (30s), Fast (2-5min), Balanced (5-15min), Slow (15min+)  
+- **📊 Size**: Small (<5k words), Medium (5k-50k), Large (50k+)
+- **🏆 HTB Success Rate**: Community-proven wordlists get priority
+
+### 🎮 HTB-Specific Features
+
+```bash
+# HTB-optimized minimal wordlist includes HTB-specific terms
+htb, hackthebox, flag, user, root, dev, staging, prod, 
+secure, private, internal, secret, hidden, console, etc.
+```
+
+### 🔧 Auto-Detection Process
+
+When ipsnipe starts, it automatically:
+
+1. **🔍 Scans** common HTB/Kali wordlist locations
+2. **📊 Categorizes** found wordlists by purpose and effectiveness  
+3. **🎯 Recommends** optimal wordlists for each scan type
+4. **⚡ Provides** time estimates for each option
+5. **🎮 Offers** HTB-specific optimizations
+
+No manual configuration needed - just run ipsnipe and it handles the rest! 
