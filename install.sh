@@ -5,28 +5,49 @@
 
 set -e
 
+# Check if we're running in bash (HTB compatibility)
+if [ -z "$BASH_VERSION" ]; then
+    # Try to re-run with bash if available
+    if command -v bash >/dev/null 2>&1; then
+        exec bash "$0" "$@"
+    fi
+fi
+
 # Setup PATH for different operating systems
 case "$OSTYPE" in
     "darwin"*)
         # macOS: Add Homebrew paths (auto-detect installation)
         for brew_path in "/opt/homebrew" "/usr/local"; do
-            [[ -d "$brew_path/bin" ]] && export PATH="$brew_path/bin:$PATH"
+            if [ -d "$brew_path/bin" ]; then
+                export PATH="$brew_path/bin:$PATH"
+            fi
         done
         ;;
     "linux-gnu"*)
         # Linux: Add standard binary paths
-        [[ -d "/usr/local/bin" ]] && export PATH="/usr/local/bin:$PATH"
-        [[ -d "/usr/bin" ]] && export PATH="/usr/bin:$PATH"
+        if [ -d "/usr/local/bin" ]; then
+            export PATH="/usr/local/bin:$PATH"
+        fi
+        if [ -d "/usr/bin" ]; then
+            export PATH="/usr/bin:$PATH"
+        fi
         ;;
 esac
 
 # Add user-installed packages to PATH (universal)
-[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
-[[ -d "$HOME/go/bin" ]] && export PATH="$HOME/go/bin:$PATH"
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+if [ -d "$HOME/go/bin" ]; then
+    export PATH="$HOME/go/bin:$PATH"
+fi
 
 # Add Python user site packages to PATH
-if command -v python3 &> /dev/null; then
-    USER_BASE=$(python3 -m site --user-base 2>/dev/null) && [[ -d "$USER_BASE/bin" ]] && export PATH="$USER_BASE/bin:$PATH"
+if command -v python3 >/dev/null 2>&1; then
+    USER_BASE=$(python3 -m site --user-base 2>/dev/null)
+    if [ -n "$USER_BASE" ] && [ -d "$USER_BASE/bin" ]; then
+        export PATH="$USER_BASE/bin:$PATH"
+    fi
 fi
 
 # Colors for output
@@ -38,7 +59,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # ipsnipe Banner
-echo -e "${BLUE}"
+printf '%b\n' "${BLUE}"
 cat << "EOF"
  ___  ________  ________  ________   ___  ________  _______      
 |\  \|\   __  \|\   ____\|\   ___  \|\  \|\   __  \|\  ___ \     
@@ -52,64 +73,83 @@ cat << "EOF"
     ⚡ Advanced Machine Reconnaissance Framework ⚡
     ════════════════════════════════════════════════
 EOF
-echo -e "${NC}"
+printf '%b\n' "${NC}"
 
-echo -e "${GREEN}🚀 ipsnipe Installation Script${NC}"
-echo -e "${YELLOW}This script will check dependencies and install missing tools${NC}\n"
+printf '%b\n' "${GREEN}🚀 ipsnipe Installation Script${NC}"
+printf '%b\n' "${YELLOW}This script will check dependencies and install missing tools${NC}"
+printf '\n'
 
-# Detect OS
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if command -v apt &> /dev/null; then
-        OS="debian"
-        echo -e "${BLUE}📋 Detected: Debian/Ubuntu-based system${NC}"
-    elif command -v pacman &> /dev/null; then
-        OS="arch"
-        echo -e "${BLUE}📋 Detected: Arch-based system${NC}"
-    else
-        OS="linux"
-        echo -e "${BLUE}📋 Detected: Generic Linux system${NC}"
-    fi
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macos"
-    echo -e "${BLUE}📋 Detected: macOS${NC}"
-else
-    echo -e "${RED}❌ Unsupported operating system: $OSTYPE${NC}"
-    exit 1
-fi
+# Detect OS (HTB compatible)
+OS=""
+case "$OSTYPE" in
+    linux-gnu*|linux*)
+        if command -v apt >/dev/null 2>&1; then
+            OS="debian"
+            printf '%b\n' "${BLUE}📋 Detected: Debian/Ubuntu-based system${NC}"
+        elif command -v pacman >/dev/null 2>&1; then
+            OS="arch"
+            printf '%b\n' "${BLUE}📋 Detected: Arch-based system${NC}"
+        else
+            OS="linux"
+            printf '%b\n' "${BLUE}📋 Detected: Generic Linux system${NC}"
+        fi
+        ;;
+    darwin*)
+        OS="macos"
+        printf '%b\n' "${BLUE}📋 Detected: macOS${NC}"
+        ;;
+    *)
+        # Fallback detection for HTB/unknown systems
+        if [ -f /etc/debian_version ]; then
+            OS="debian"
+            printf '%b\n' "${BLUE}📋 Detected: Debian/Ubuntu-based system (fallback)${NC}"
+        elif [ -f /etc/redhat-release ]; then
+            OS="redhat"
+            printf '%b\n' "${BLUE}📋 Detected: RedHat-based system (fallback)${NC}"
+        elif command -v apt >/dev/null 2>&1; then
+            OS="debian"
+            printf '%b\n' "${BLUE}📋 Detected: APT-based system (fallback)${NC}"
+        else
+            printf '%b\n' "${RED}❌ Unsupported operating system: ${OSTYPE:-unknown}${NC}"
+            printf '%b\n' "${YELLOW}⚠️  Continuing anyway - some tools may need manual installation${NC}"
+            OS="unknown"
+        fi
+        ;;
+esac
 
 # Check Python version
-echo -e "\n${YELLOW}🔍 Checking Python installation...${NC}"
-if command -v python3 &> /dev/null; then
+printf '\n%b\n' "${YELLOW}🔍 Checking Python installation...${NC}"
+if command -v python3 >/dev/null 2>&1; then
     # Store the original Python executable before any PATH modifications
     PYTHON_EXEC=$(command -v python3)
     PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
-    echo -e "${GREEN}✅ Python 3 found: $PYTHON_VERSION${NC}"
-    echo -e "${BLUE}📍 Using Python: $PYTHON_EXEC${NC}"
+    printf '%b\n' "${GREEN}✅ Python 3 found: $PYTHON_VERSION${NC}"
+    printf '%b\n' "${BLUE}📍 Using Python: $PYTHON_EXEC${NC}"
     
     # Show if this is different from system default (detect Homebrew dynamically)
     SYSTEM_PYTHON=""
     for brew_path in "/opt/homebrew" "/usr/local"; do
-        if [[ -f "$brew_path/bin/python3" ]]; then
+        if [ -f "$brew_path/bin/python3" ]; then
             SYSTEM_PYTHON="$brew_path/bin/python3"
             break
         fi
     done
     
-    if [[ -n "$SYSTEM_PYTHON" ]] && [[ "$PYTHON_EXEC" != "$SYSTEM_PYTHON" ]]; then
+    if [ -n "$SYSTEM_PYTHON" ] && [ "$PYTHON_EXEC" != "$SYSTEM_PYTHON" ]; then
         SYSTEM_VERSION=$($SYSTEM_PYTHON --version | cut -d' ' -f2)
-        echo -e "${CYAN}ℹ️  System Python: $SYSTEM_PYTHON ($SYSTEM_VERSION)${NC}"
-        echo -e "${CYAN}ℹ️  Using PATH-priority Python for consistency${NC}"
+        printf '%b\n' "${CYAN}ℹ️  System Python: $SYSTEM_PYTHON ($SYSTEM_VERSION)${NC}"
+        printf '%b\n' "${CYAN}ℹ️  Using PATH-priority Python for consistency${NC}"
     fi
     
     # Check if version is 3.8+
     if python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)"; then
-        echo -e "${GREEN}✅ Python version is compatible${NC}"
+        printf '%b\n' "${GREEN}✅ Python version is compatible${NC}"
     else
-        echo -e "${RED}❌ Python 3.8+ required. Current version: $PYTHON_VERSION${NC}"
+        printf '%b\n' "${RED}❌ Python 3.8+ required. Current version: $PYTHON_VERSION${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}❌ Python 3 not found. Please install Python 3.8+${NC}"
+    printf '%b\n' "${RED}❌ Python 3 not found. Please install Python 3.8+${NC}"
     exit 1
 fi
 
@@ -118,17 +158,17 @@ check_tool() {
     local tool_name="$1"
     local command_name="${2:-$1}"
     
-    if command -v "$command_name" &> /dev/null; then
-        echo -e "${GREEN}✅ $tool_name found${NC}"
+    if command -v "$command_name" >/dev/null 2>&1; then
+        printf '%b\n' "${GREEN}✅ $tool_name found${NC}"
         return 0
     else
-        echo -e "${RED}❌ $tool_name not found${NC}"
+        printf '%b\n' "${RED}❌ $tool_name not found${NC}"
         return 1
     fi
 }
 
 # Check dependencies
-echo -e "\n${YELLOW}🔍 Checking tool dependencies...${NC}"
+printf '\n%b\n' "${YELLOW}🔍 Checking tool dependencies...${NC}"
 
 # Core tools (required)
 CORE_TOOLS=(
@@ -158,7 +198,7 @@ OPTIONAL_TOOLS=(
 MISSING_CORE=()
 MISSING_OPTIONAL=()
 
-echo -e "\n${CYAN}🔍 Core Tools Status:${NC}"
+printf '\n%b\n' "${CYAN}🔍 Core Tools Status:${NC}"
 for tool_pair in "${CORE_TOOLS[@]}"; do
     tool_name=$(echo "$tool_pair" | cut -d':' -f1)
     command_name=$(echo "$tool_pair" | cut -d':' -f2)
@@ -168,7 +208,7 @@ for tool_pair in "${CORE_TOOLS[@]}"; do
     fi
 done
 
-echo -e "\n${CYAN}🔍 Required Tools Status:${NC}"
+printf '\n%b\n' "${CYAN}🔍 Required Tools Status:${NC}"
 for tool_pair in "${OPTIONAL_TOOLS[@]}"; do
     tool_name=$(echo "$tool_pair" | cut -d':' -f1)
     command_name=$(echo "$tool_pair" | cut -d':' -f2)
@@ -179,27 +219,27 @@ for tool_pair in "${OPTIONAL_TOOLS[@]}"; do
 done
 
 # Check Python dependencies
-echo -e "\n${CYAN}🔍 Python Dependencies Status:${NC}"
+printf '\n%b\n' "${CYAN}🔍 Python Dependencies Status:${NC}"
 PYTHON_DEPS_MISSING=false
-if ! python3 -c "import toml" &> /dev/null; then
-    echo -e "${RED}❌ Python package 'toml' not found${NC}"
+if ! python3 -c "import toml" >/dev/null 2>&1; then
+    printf '%b\n' "${RED}❌ Python package 'toml' not found${NC}"
     PYTHON_DEPS_MISSING=true
 else
-    echo -e "${GREEN}✅ Python package 'toml' found${NC}"
+    printf '%b\n' "${GREEN}✅ Python package 'toml' found${NC}"
 fi
 
-if ! python3 -c "import rich" &> /dev/null; then
-    echo -e "${RED}❌ Python package 'rich' not found${NC}"
+if ! python3 -c "import rich" >/dev/null 2>&1; then
+    printf '%b\n' "${RED}❌ Python package 'rich' not found${NC}"
     PYTHON_DEPS_MISSING=true
 else
-    echo -e "${GREEN}✅ Python package 'rich' found${NC}"
+    printf '%b\n' "${GREEN}✅ Python package 'rich' found${NC}"
 fi
 
-if ! python3 -c "import requests" &> /dev/null; then
-    echo -e "${RED}❌ Python package 'requests' not found${NC}"
+if ! python3 -c "import requests" >/dev/null 2>&1; then
+    printf '%b\n' "${RED}❌ Python package 'requests' not found${NC}"
     PYTHON_DEPS_MISSING=true
 else
-    echo -e "${GREEN}✅ Python package 'requests' found${NC}"
+    printf '%b\n' "${GREEN}✅ Python package 'requests' found${NC}"
 fi
 
 # Summary
