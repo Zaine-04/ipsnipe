@@ -339,56 +339,69 @@ class ScannerCore:
         
         print(f"{Colors.YELLOW}🔍 Checking dependencies...{Colors.END}")
         
-        # Check core tools (must have these)
-        missing_core = []
+        # Check all tools and categorize results
+        found_core, missing_core = [], []
+        found_web, missing_web = [], []
+        found_advanced, missing_advanced = [], []
+        fuzzing_tool_found = False
+        fuzzing_status = []
+        
+        # Check core tools
         for tool in core_tools:
             try:
                 subprocess.run(['which', tool], capture_output=True, check=True)
-                print(f"{Colors.GREEN}✅ {tool} found{Colors.END}")
+                found_core.append(tool)
             except subprocess.CalledProcessError:
-                print(f"{Colors.RED}❌ {tool} not found (REQUIRED){Colors.END}")
                 missing_core.append(tool)
         
-        # Check web tools (important but not critical)
-        missing_web = []
+        # Check web tools
         for tool in web_tools:
             try:
                 subprocess.run(['which', tool], capture_output=True, check=True)
-                print(f"{Colors.GREEN}✅ {tool} found{Colors.END}")
+                found_web.append(tool)
             except subprocess.CalledProcessError:
-                print(f"{Colors.YELLOW}⚠️  {tool} not found (web features limited){Colors.END}")
                 missing_web.append(tool)
         
-        # Check fuzzing alternatives (need at least one)
-        fuzzing_tool_found = False
-        fuzzing_status = []
+        # Check fuzzing alternatives
         for tool in fuzzing_alternatives:
             try:
                 subprocess.run(['which', tool], capture_output=True, check=True)
-                print(f"{Colors.GREEN}✅ {tool} found (web fuzzing){Colors.END}")
                 fuzzing_tool_found = True
                 if tool == 'wfuzz':
                     fuzzing_status.append(f"{tool} (legacy)")
                 else:
-                    fuzzing_status.append(f"{tool} (modern)")
+                    fuzzing_status.append(f"{tool}")
             except subprocess.CalledProcessError:
-                if tool == 'wfuzz':
-                    print(f"{Colors.BLUE}ℹ️  {tool} not found (replaced by ffuf/feroxbuster){Colors.END}")
-                else:
-                    print(f"{Colors.CYAN}ℹ️  {tool} not found{Colors.END}")
+                pass
         
-        if not fuzzing_tool_found:
-            print(f"{Colors.YELLOW}⚠️  No web fuzzing tools available (limited directory discovery){Colors.END}")
-        
-        # Check advanced tools (nice to have)
-        missing_advanced = []
+        # Check advanced tools
         for tool in advanced_tools:
             try:
                 subprocess.run(['which', tool], capture_output=True, check=True)
-                print(f"{Colors.GREEN}✅ {tool} found{Colors.END}")
+                found_advanced.append(tool)
             except subprocess.CalledProcessError:
-                print(f"{Colors.CYAN}ℹ️  {tool} not found (advanced features unavailable){Colors.END}")
                 missing_advanced.append(tool)
+        
+        # Display compact results
+        if found_core:
+            print(f"{Colors.GREEN}✅ Core: {', '.join(found_core)}{Colors.END}")
+        if missing_core:
+            print(f"{Colors.RED}❌ Missing Core: {', '.join(missing_core)} (REQUIRED){Colors.END}")
+        
+        if found_web:
+            print(f"{Colors.GREEN}✅ Web: {', '.join(found_web)}{Colors.END}")
+        if missing_web:
+            print(f"{Colors.YELLOW}⚠️  Missing Web: {', '.join(missing_web)}{Colors.END}")
+        
+        if fuzzing_tool_found:
+            print(f"{Colors.GREEN}✅ Fuzzing: {', '.join(fuzzing_status)}{Colors.END}")
+        else:
+            print(f"{Colors.YELLOW}⚠️  No fuzzing tools (ffuf/feroxbuster recommended){Colors.END}")
+        
+        if found_advanced:
+            print(f"{Colors.GREEN}✅ Advanced: {', '.join(found_advanced)}{Colors.END}")
+        if missing_advanced:
+            print(f"{Colors.CYAN}ℹ️  Missing Advanced: {', '.join(missing_advanced)}{Colors.END}")
         
         # Summary and recommendations
         if missing_core:

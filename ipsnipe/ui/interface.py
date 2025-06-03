@@ -60,10 +60,19 @@ class UserInterface:
         
         has_sudo = self.test_sudo_access()
         
-        # Simplified explanation
+                # Simplified explanation
         self.console.print("\nEnhanced mode enables faster, more comprehensive scans", style="cyan")
         if not has_sudo:
             self.console.print("⚠️  May require password", style="yellow")
+        
+        # Display creator attribution message
+        self.console.print("\nHappy ethical hacking! 🎯\n", style="bright_green")
+        self.console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", style="cyan")
+        self.console.print("ipsnipe created by hckerhub, thank you for trying my tool! ❤️", style="bold white")
+        self.console.print("🌐 Website: https://hackerhub.me", style="blue")
+        self.console.print("🐦 X: @hckerhub", style="blue")
+        self.console.print("☕ Support: https://buymeacoffee.com/hckerhub", style="yellow")
+        self.console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", style="cyan")
         
         if Confirm.ask("\nUse enhanced mode?", default=True):
             self.console.print("✅ Enhanced mode enabled", style="green")
