@@ -20,6 +20,7 @@ class Colors:
     PURPLE = ""
     CYAN = ""
     WHITE = ""
+    GRAY = ""
     BOLD = ""
     UNDERLINE = ""
     END = ""

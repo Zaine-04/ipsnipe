@@ -200,7 +200,7 @@ class WordlistManager:
                 size_indicator = f" {Colors.PURPLE}(custom){Colors.END}"
             
             print(f"  {Colors.CYAN}{i}) {key.replace('_', ' ').title()}{Colors.END}{size_indicator}")
-            print(f"     {Colors.GRAY}{description}{Colors.END}")
+            print(f"     {Colors.CYAN}{description}{Colors.END}")
         
         # Add custom wordlist option
         custom_option = len(options) + 1
