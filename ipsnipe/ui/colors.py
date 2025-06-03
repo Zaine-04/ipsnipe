@@ -36,7 +36,7 @@ BANNER_TEXT = r"""
     \|__|\|__|    |\_________\|__| \|__|\|__|\|__|     \|_______|
                   \|_________|                                   
 
-            ⚡ Advanced Machine Reconnaissance Framework v3.1 ⚡
+            ⚡ Advanced Machine Reconnaissance Framework v3.2 ⚡
     ════════════════════════════════════════════════════════
 """
 

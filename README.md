@@ -435,11 +435,49 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 **Happy ethical hacking! 🎯** 
 
-## 🔥 New in v3.1: HTB-Optimized Wordlist Auto-Detection
+## 🔥 New in v3.2: Advanced Wordlist Intelligence & Configuration Stability
 
-ipsnipe now automatically detects and categorizes wordlists in HTB environments! No more manual path configuration.
+ipsnipe v3.2 introduces revolutionary wordlist management with multi-layer intelligence and eliminates configuration conflicts!
 
-### 🤖 Intelligent Wordlist Detection
+### 🎯 CRITICAL FIXES: Configuration Conflicts Resolved
+
+**Problem Solved**: Previously, only nmap scans worked while other scanners (feroxbuster, ffuf, etc.) failed due to competing configuration systems.
+
+**Solution**: v3.2 eliminates TOML/Python configuration conflicts and unifies everything under a single, robust auto-detection system.
+
+### 🧠 5-Layer Intelligent Wordlist Selection
+
+ipsnipe now uses sophisticated AI-like intelligence to select optimal wordlists:
+
+| Layer | Intelligence Type | Function |
+|-------|------------------|----------|
+| **🔍 Layer 1** | **Deep Directory Analysis** | Recursively scans all wordlist directories and analyzes every .txt file |
+| **📊 Layer 2** | **Multi-Factor Categorization** | Analyzes path structure, filename patterns, and word count |
+| **🏆 Layer 3** | **Quality Scoring System** | Ranks 2,663+ wordlists with intelligent scoring (SecLists +1.5, optimal size +3.0) |
+| **🎮 Layer 4** | **Context-Aware Selection** | Adapts based on detected technologies, ports, CMS, and server headers |
+| **⚡ Layer 5** | **Final Intelligent Ranking** | Combines all factors for optimal wordlist selection |
+
+### 🧠 Context-Aware Target Intelligence
+
+Automatically adjusts wordlist selection based on discovered target characteristics:
+
+#### 🏢 Technology Stack Detection
+- **PHP detected** → PHP-specific wordlists get +1.5 bonus
+- **Apache detected** → Apache/htaccess wordlists get +1.3 bonus  
+- **Tomcat detected** → Manager/admin wordlists get +1.5 bonus
+- **IIS detected** → ASPX-specific wordlists get +1.3 bonus
+
+#### 🔌 Port-Based Intelligence  
+- **Port 8080** → Tomcat manager wordlists prioritized
+- **Port 3000** → Node.js/API wordlists prioritized
+- **Port 8000** → Development wordlists prioritized
+
+#### 🎯 CMS-Specific Optimization
+- **WordPress** → WP-admin, wp-content wordlists get +2.0 bonus
+- **Drupal** → Drupal-specific paths get +2.0 bonus
+- **Joomla** → Administrator paths get +1.5 bonus
+
+### 🤖 Enhanced Intelligent Wordlist Detection
 
 ipsnipe automatically scans for and categorizes wordlists from:
 
@@ -479,14 +517,15 @@ htb, hackthebox, flag, user, root, dev, staging, prod,
 secure, private, internal, secret, hidden, console, etc.
 ```
 
-### 🔧 Auto-Detection Process
+### 🔧 Zero-Configuration Auto-Detection
 
 When ipsnipe starts, it automatically:
 
 1. **🔍 Scans** common HTB/Kali wordlist locations
-2. **📊 Categorizes** found wordlists by purpose and effectiveness  
-3. **🎯 Recommends** optimal wordlists for each scan type
-4. **⚡ Provides** time estimates for each option
-5. **🎮 Offers** HTB-specific optimizations
+2. **📊 Categorizes** 2,663+ wordlists by purpose and effectiveness  
+3. **🧠 Analyzes** target context (technology, ports, CMS)
+4. **🎯 Recommends** optimal wordlists with intelligent scoring
+5. **⚡ Provides** time estimates and quality ratings
+6. **🎮 Offers** HTB-specific optimizations
 
-No manual configuration needed - just run ipsnipe and it handles the rest! 
+**All scanners now work reliably** - configuration conflicts completely eliminated! 

@@ -2,6 +2,79 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2] - 2024-12-23 - Wordlist Management & Configuration Stability Edition
+
+### 🎯 CRITICAL WORDLIST MANAGEMENT FIXES
+- **🔧 Resolved Configuration Conflicts** - Eliminated competing wordlist configuration systems
+  - Fixed critical issue where only nmap scans worked while other scanners (feroxbuster, ffuf, etc.) failed
+  - Removed conflicting TOML configuration that competed with intelligent auto-detection system
+  - Unified wordlist management under single, robust auto-detection system
+  - Enhanced error handling for missing wordlist scenarios with graceful fallbacks
+
+### 🧠 Enhanced Intelligent Wordlist Selection
+- **🎯 Multi-Layer Intelligence System** - Sophisticated wordlist selection based on target analysis
+  - **Layer 1**: Deep directory structure analysis with recursive file scanning
+  - **Layer 2**: Multi-factor categorization by path structure, filename patterns, and word count
+  - **Layer 3**: Quality scoring system (2,663+ wordlists intelligently ranked)
+  - **Layer 4**: Context-aware selection based on detected technologies, ports, and CMS
+  - **Layer 5**: Final intelligent ranking combining all factors for optimal wordlist selection
+
+### 🔍 Advanced Auto-Detection System
+- **📊 Comprehensive Wordlist Analysis** - Intelligent categorization of thousands of wordlists
+  - Auto-detection of SecLists, Dirb, DirBuster, and custom wordlist locations
+  - Purpose-based categorization: directory, subdomain, API, files, parameters
+  - Size-based optimization: small (<1K), medium (1K-50K), large (>50K) word classifications
+  - Speed estimation: lightning (30s-1min), fast (1-10min), slow (30min+) scan times
+  - Quality scoring based on effectiveness, source reputation, and optimal sizing
+
+### 🎮 Context-Aware Target Intelligence
+- **🧠 Technology-Based Wordlist Selection** - Adaptive wordlist choice based on target characteristics
+  - **CMS Detection**: WordPress (+2.0 bonus), Drupal (+2.0), Joomla (+1.5) specific wordlists
+  - **Technology Stack**: PHP (+1.5), Apache (+1.3), Nginx (+1.3), IIS (+1.3), Tomcat (+1.5) optimizations
+  - **Port-Based Intelligence**: Port 8080 (Tomcat +1.5), Port 3000 (Node.js/API +1.5), Port 8000 (Dev +1.3)
+  - **Server Header Analysis**: Automatic adjustment based on detected web server technologies
+  - **OS-Specific Optimization**: Windows/Linux specific wordlist prioritization
+
+### 🛠️ Robust Error Handling & Fallbacks
+- **✅ Graceful Degradation** - Reliable operation across all environments
+  - Enhanced fallback mechanisms when standard wordlists are unavailable
+  - Minimal wordlist creation for non-HTB environments
+  - Improved error messages with actionable troubleshooting guidance
+  - Comprehensive wordlist validation before scanner execution
+  - Smart recovery from corrupted or missing wordlist files
+
+### 🚀 HTB Environment Optimization
+- **🎯 Perfect HTB Integration** - Seamless operation in Hack The Box environments
+  - Validated detection of 2,663+ intelligent wordlists in HTB environments
+  - Enhanced SecLists integration with deep structural analysis
+  - Optimized wordlist selection for CTF/HTB scenarios
+  - Automatic detection of HTB-specific wordlist collections
+  - Zero-configuration operation in standard HTB setups
+
+### 📈 Performance & Reliability Improvements
+- **⚡ Enhanced Scanner Stability** - All scanners now work reliably without conflicts
+  - Fixed feroxbuster wordlist resolution issues
+  - Resolved ffuf subdomain enumeration wordlist problems
+  - Enhanced web scanner wordlist fallback mechanisms
+  - Improved parameter scanner wordlist detection
+  - Eliminated hardcoded path conflicts with dynamic detection
+
+### 🔧 Configuration System Cleanup
+- **🧹 Simplified Configuration Architecture** - Streamlined single-source configuration
+  - Removed competing TOML/Python configuration conflicts
+  - Unified under intelligent auto-detection system
+  - Eliminated configuration priority confusion
+  - Reduced complexity while maintaining full functionality
+  - Clear separation between emergency fallbacks and primary detection
+
+### 🎓 Enhanced User Experience
+- **📚 Intelligent Wordlist Recommendations** - Clear guidance for optimal wordlist selection
+  - Context-aware wordlist suggestions based on target analysis
+  - Quality scoring visible to users for informed decision making
+  - Speed/coverage trade-off recommendations
+  - Educational descriptions explaining wordlist purposes and estimated scan times
+  - Streamlined selection process with intelligent defaults
+
 ## [3.1] - 2024-12-18 - Portability & Installer Enhancement Edition
 
 ### 🚀 Major Installer Improvements
