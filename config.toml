@@ -213,6 +213,15 @@ udp_ports = "200"
 # └─────────────────────────────────────────────────────────────────────────────────┘
 timing = "T4"
 
+# 🚀 Minimum packet rate (packets per second)
+# Higher values = faster scans but more aggressive/noisy
+# 5000 = very fast, perfect for HTB where noise doesn't matter
+# 🎯 CTF Tip: High min-rate speeds up scans significantly in CTF environments
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ MODIFY THIS VALUE: min_rate = "5000"                                           │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+min_rate = "5000"
+
 # 🔍 Version Detection Intensity (0=light, 9=aggressive)
 # Higher numbers try harder to identify exact service versions
 # Version info often reveals known vulnerabilities!
@@ -658,4 +667,64 @@ scripts = "http-enum,http-headers,http-methods,http-title"
 #   udp_ports = "200"          # UDP ports to check
 #   version_intensity = "5"     # How hard to try detecting versions
 #
+# =====================================================================================
+# 🎯 FULL SNIPER MODE SETTINGS - Complete Reconnaissance Suite  
+# =====================================================================================
+[full_sniper_mode]
+#
+# 🤔 What is Full Sniper Mode?
+# A comprehensive reconnaissance workflow that runs ALL tools in optimized order:
+# • Phase 1: Network Discovery (nmap scans)
+# • Phase 2: DNS & Domain Intelligence (DNS enumeration, theHarvester)  
+# • Phase 3: Web Application Analysis (web scanners, CMS detection, parameter testing)
+#
+# Each phase feeds intelligence to the next for maximum effectiveness!
+
+# Enable automatic intelligence flow between tools
+# When enabled, each tool's results enhance the next tool's effectiveness
+enable_intelligence_flow = true
+
+# Show detailed command information for each tool execution
+# Displays the exact command that was run for learning purposes
+show_command_details = true
+
+# Generate comprehensive reports after each tool completes
+# Creates detailed output files with command info and results
+generate_detailed_reports = true
+
+# Pause between phases to review results (useful for learning)
+# Set to true if you want to manually review each phase before continuing
+pause_between_phases = false
+
+# Automatically skip tools that fail and continue with remaining tools
+# Prevents one failed tool from stopping the entire reconnaissance
+auto_skip_failed_tools = true
+
+# Maximum time to wait for all tools to complete (in seconds)
+# 0 = no overall timeout, rely on individual tool timeouts
+# 2700 = 45 minutes maximum for entire Full Sniper Mode execution
+max_total_execution_time = 0
+
+# Tool execution order (DO NOT MODIFY unless you understand dependencies)
+# This order is optimized for intelligence flow between tools
+execution_order = [
+    "nmap_full",       # Aggressive comprehensive port scan with high min-rate - provides service details  
+    "nmap_udp",        # UDP services - often overlooked attack vectors
+    "dns_enumeration", # Basic DNS - uses discovered domains from nmap
+    "advanced_dns",    # Advanced DNS - certificate transparency, zone transfers
+    "theharvester",    # OSINT gathering - email addresses, additional subdomains
+    "enhanced_web",    # Advanced web discovery - uses all discovered info
+    "feroxbuster",     # Directory enumeration - uses discovered web ports/domains
+    "ffuf",           # Virtual host enumeration - uses discovered domains
+    "cms_scan",       # CMS detection - uses discovered web services
+    "param_lfi_scan"  # Parameter/LFI testing - uses discovered web endpoints
+]
+
+# Show progress indicators during Full Sniper Mode execution
+show_progress_indicators = true
+
+# Create timestamped checkpoint files during execution
+# Allows resuming if interrupted (future feature)
+create_checkpoints = false
+
 # ===================================================================================== 

@@ -58,14 +58,26 @@ class NmapScanner:
         return result
     
     def full_scan(self, target_ip: str, run_command_func, port_range: Optional[str] = None) -> Dict:
-        """Run full Nmap scan using configuration or custom port range"""
+        """Run aggressive full Nmap scan with high min-rate using configuration or custom port range"""
         nmap_config = self.config['nmap']
-        command = ['nmap', '-sT']
+        
+        # Determine scan type based on sudo mode for maximum speed
+        if self.enhanced_mode:
+            command = ['sudo', 'nmap', '-sS']  # SYN scan with sudo for speed
+            scan_description = 'Nmap Aggressive Full Scan (Enhanced SYN + High Min-Rate)'
+        else:
+            command = ['nmap', '-sT']  # TCP connect scan
+            scan_description = 'Nmap Aggressive Full Scan (Standard TCP + High Min-Rate)'
+        
+        # Add high min-rate for aggressive scanning (HTB optimized)
+        if 'min_rate' in nmap_config:
+            command.extend(['--min-rate', str(nmap_config['min_rate'])])
         
         if nmap_config['enable_version_detection']:
-            command.extend(['-sV', '--version-intensity', '9'])
+            command.extend(['-sV', '--version-intensity', str(nmap_config['version_intensity'])])
         
-        if nmap_config['enable_os_detection']:
+        # Only enable OS detection in enhanced mode
+        if nmap_config['enable_os_detection'] and self.enhanced_mode:
             command.append('-O')
         
         # Use custom port range if provided, otherwise scan all ports
@@ -81,7 +93,7 @@ class NmapScanner:
         
         command.append(target_ip)
         
-        result = run_command_func(command, 'nmap_full.txt', 'Nmap Full Scan', 'nmap')
+        result = run_command_func(command, 'nmap_full.txt', scan_description, 'nmap')
         
         # Parse output for port detection if scan was successful
         if result['status'] == 'success':
@@ -102,6 +114,10 @@ class NmapScanner:
         
         nmap_config = self.config['nmap']
         command = ['sudo', 'nmap', '-sU']
+        
+        # Add high min-rate for aggressive UDP scanning (HTB optimized)
+        if 'min_rate' in nmap_config:
+            command.extend(['--min-rate', str(nmap_config['min_rate'])])
         
         # Use custom port range if provided, otherwise use default UDP ports
         if port_range and port_range != 'default':

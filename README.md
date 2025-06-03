@@ -17,6 +17,31 @@ A user-friendly CLI tool for automated penetration testing and reconnaissance. I
     ⚡ Advanced Machine Reconnaissance Framework ⚡
     ═══════════════════════════════════════════════
 ```
+> ⚠️ **Warning: Beta Software**  
+> This tool is under active development. While functional, you may encounter bugs or incomplete features.  
+> Please report issues on GitHub to help improve the project.
+
+> 💡 **Tip:** For the best experience, use Kali Linux or Ubuntu with Python 3.8+.
+
+> 🔧 **Development Status:**  
+> - Core functionality: ✅ Complete  
+> - Enhanced DNS: 🟡 In Progress  
+> - Web Enumeration: 🟡 In Progress  
+> - Documentation: 🟡 In Progress  
+> - Testing: 🟡 In Progress  
+> - Reporting: 🟡 In Progress
+
+> 🐛 **Known Issues:**  
+> - Some DNS enumeration features may be incomplete
+> - Web discovery may miss certain edge cases
+> - Documentation may be outdated
+> - Performance optimizations pending
+> - Report generation may be incomplete or contain errors
+
+> 📝 **Contributing:**  
+> Feel free to submit issues and pull requests to help improve the project!
+
+
 
 ## ✨ Features
 
@@ -335,6 +360,18 @@ Edit `config.toml` to customize:
 - Output formatting
 
 ## 🐛 Troubleshooting
+
+### Progress Display Issues
+
+If you experience issues with the progress indicator creating new lines or displaying incorrectly:
+
+```bash
+# Force simple progress mode
+export IPSNIPE_SIMPLE_PROGRESS=1
+python3 ipsnipe.py
+```
+
+This will use a simpler progress indicator that's more compatible with different terminal types.
 
 ### Common Issues
 ```bash

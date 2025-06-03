@@ -1,26 +1,31 @@
 #!/usr/bin/env python3
 """
-Color utilities for ipsnipe terminal output
-ANSI color codes and formatting
+Rich-powered display utilities for ipsnipe
+Simplified color and formatting using Rich library
 """
 
+from rich.console import Console
+from rich.text import Text
 
+# Global console instance for consistent styling
+console = Console()
+
+# Legacy Colors class for backward compatibility
 class Colors:
-    """ANSI color codes for terminal output"""
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    WHITE = '\033[97m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
+    """Backward compatibility - now uses Rich internally"""
+    RED = ""
+    GREEN = ""
+    YELLOW = ""
+    BLUE = ""
+    PURPLE = ""
+    CYAN = ""
+    WHITE = ""
+    BOLD = ""
+    UNDERLINE = ""
+    END = ""
 
-
-# ASCII Art Banner
-BANNER = r"""
+# ASCII Art Banner (same as before)
+BANNER_TEXT = r"""
  ___  ________  ________  ________   ___  ________  _______      
 |\  \|\   __  \|\   ____\|\   ___  \|\  \|\   __  \|\  ___ \     
 \ \  \ \  \|\  \ \  \___|\ \  \\ \  \ \  \ \  \|\  \ \   __/|    
@@ -30,11 +35,32 @@ BANNER = r"""
     \|__|\|__|    |\_________\|__| \|__|\|__|\|__|     \|_______|
                   \|_________|                                   
 
-    ⚡ Advanced Machine Reconnaissance Framework v2.1 ⚡
+            ⚡ Advanced Machine Reconnaissance Framework v3.1 ⚡
     ════════════════════════════════════════════════════════
 """
 
-
 def print_banner():
-    """Print the ipsnipe banner"""
-    print(f"{Colors.CYAN}{BANNER}{Colors.END}") 
+    """Print the ipsnipe banner with Rich styling"""
+    banner = Text(BANNER_TEXT, style="cyan")
+    console.print(banner)
+
+# Convenience functions for common styled output
+def print_success(message: str):
+    """Print success message"""
+    console.print(f"✅ {message}", style="green")
+
+def print_error(message: str):
+    """Print error message"""
+    console.print(f"❌ {message}", style="red")
+
+def print_warning(message: str):
+    """Print warning message"""
+    console.print(f"⚠️  {message}", style="yellow")
+
+def print_info(message: str):
+    """Print info message"""
+    console.print(f"ℹ️  {message}", style="cyan")
+
+def print_status(message: str, style: str = "white"):
+    """Print status message with custom style"""
+    console.print(message, style=style) 

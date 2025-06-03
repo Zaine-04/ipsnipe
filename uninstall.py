@@ -28,16 +28,35 @@ class IPSnipeUninstaller:
         self.keep_packages = []
         self.keep_tools = []
         
-        # Define packages and tools that ipsnipe uses
-        self.python_packages = ['toml', 'colorama', 'rich']
+        # Updated packages and tools that ipsnipe uses
+        self.python_packages = [
+            'toml', 'rich', 'requests'
+        ]
+        
         self.system_tools = {
             'nmap': 'nmap',
-            
             'feroxbuster': 'feroxbuster',
             'ffuf': 'ffuf',
             'theHarvester': 'theHarvester',
             'whatweb': 'whatweb',
-            'ruby': 'ruby'
+            'ruby': 'ruby',
+            'cewl': 'cewl',
+            'curl': 'curl',
+            'dig': 'dig',
+            'host': 'host',
+            'whois': 'whois',
+            'waybackurls': 'waybackurls',
+            'subfinder': 'subfinder',
+            'assetfinder': 'assetfinder',
+            'amass': 'amass',
+            'dnsrecon': 'dnsrecon',
+            'rustscan': 'rustscan',
+            'gobuster': 'gobuster',
+            'dirb': 'dirb',
+            'nuclei': 'nuclei',
+            'httpx': 'httpx',
+            'katana': 'katana',
+            'paramspider': 'paramspider'
         }
         
     def detect_os(self):
@@ -74,17 +93,62 @@ class IPSnipeUninstaller:
         print(f"{Colors.NC}")
     
     def check_command(self, command):
-        """Check if a command exists"""
-        return shutil.which(command) is not None
+        """Check if a command exists using multiple methods"""
+        # Method 1: shutil.which (most reliable)
+        if shutil.which(command):
+            return True
+            
+        # Method 2: subprocess check (fallback)
+        try:
+            result = subprocess.run(['which', command], capture_output=True, text=True)
+            if result.returncode == 0:
+                return True
+        except:
+            pass
+            
+        # Method 3: command -v check (shell builtin)
+        try:
+            result = subprocess.run(['bash', '-c', f'command -v {command}'], capture_output=True, text=True)
+            if result.returncode == 0:
+                return True
+        except:
+            pass
+            
+        return False
     
     def check_python_package(self, package):
-        """Check if a Python package is installed"""
+        """Check if a Python package is installed using multiple methods"""
+        # Import sys here for all methods
+        import sys
+        
+        # Method 1: Direct import test
         try:
             result = subprocess.run([sys.executable, '-c', f'import {package}'], 
                                   capture_output=True, text=True)
-            return result.returncode == 0
-        except:
-            return False
+            if result.returncode == 0:
+                return True
+        except Exception as e:
+            pass
+            
+        # Method 2: pip show check
+        try:
+            result = subprocess.run([sys.executable, '-m', 'pip', 'show', package], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                return True
+        except Exception as e:
+            pass
+            
+        # Method 3: pip list check
+        try:
+            result = subprocess.run([sys.executable, '-m', 'pip', 'list'], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0 and package.lower() in result.stdout.lower():
+                return True
+        except Exception as e:
+            pass
+            
+        return False
     
     def scan_installed_dependencies(self):
         """Scan for installed dependencies"""
@@ -108,25 +172,77 @@ class IPSnipeUninstaller:
             else:
                 print(f"{Colors.YELLOW}⚪ {tool_name} - not installed{Colors.NC}")
         
-        # Check project files
-        print(f"\n{Colors.CYAN}📁 Project Files:{Colors.NC}")
-        project_files_to_check = [
+        # Check project files and directories
+        print(f"\n{Colors.CYAN}📁 Project Files & Directories:{Colors.NC}")
+        project_items_to_check = [
+            # Main files
             'ipsnipe.py',
-            'ipsnipe/',
             'requirements.txt',
             'install.sh',
             'config.toml',
             'README.md',
-            'LICENSE'
+            'LICENSE',
+            'CHANGELOG.md',
+            'uninstall.py',
+            'uninstall.sh',
+            '.gitignore',
+            'UI_IMPROVEMENT_SUMMARY.md',
+            
+            # Main directories
+            'ipsnipe/',
+            'legacy_file/',
+            'misc/',
+            '__pycache__/',
+            '.git/',
+            '.vscode/',
+            
+            # Python cache files
+            'ipsnipe/__pycache__/',
+            'ipsnipe/ui/__pycache__/',
+            'ipsnipe/scanners/__pycache__/',
+            'ipsnipe/core/__pycache__/',
+            'legacy_file/__pycache__/',
+            
+            # macOS files
+            '.DS_Store',
+            
+            # Scan result directories (pattern matching)
+            # Will be checked separately with glob pattern
         ]
         
-        for file_path in project_files_to_check:
-            if os.path.exists(file_path):
-                self.project_files.append(file_path)
-                print(f"{Colors.GREEN}✅ {file_path} - FOUND{Colors.NC}")
+        for item_path in project_items_to_check:
+            if os.path.exists(item_path):
+                self.project_files.append(item_path)
+                if os.path.isdir(item_path):
+                    print(f"{Colors.GREEN}✅ {item_path} (directory) - FOUND{Colors.NC}")
+                else:
+                    print(f"{Colors.GREEN}✅ {item_path} - FOUND{Colors.NC}")
+        
+        # Check for scan result directories (ipsnipe_scan_*)
+        import glob
+        scan_dirs = glob.glob('ipsnipe_scan_*')
+        for scan_dir in scan_dirs:
+            if os.path.exists(scan_dir):
+                self.project_files.append(scan_dir)
+                print(f"{Colors.GREEN}✅ {scan_dir} (scan results) - FOUND{Colors.NC}")
         
         # Check for installed binaries in system paths
-        system_binaries = ['/usr/local/bin/theHarvester', '/usr/local/bin/whatweb']
+        system_binaries = [
+            '/usr/local/bin/theHarvester', 
+            '/usr/local/bin/whatweb',
+            '/usr/local/bin/feroxbuster',
+            '/usr/local/bin/ffuf',
+            '/usr/local/bin/gobuster',
+            '/usr/local/bin/nuclei',
+            '/usr/local/bin/httpx',
+            '/usr/local/bin/katana',
+            '/usr/local/bin/waybackurls',
+            '/usr/local/bin/subfinder',
+            '/usr/local/bin/assetfinder',
+            '/usr/local/bin/amass',
+            '/usr/local/bin/rustscan',
+            '/usr/local/bin/paramspider'
+        ]
         for binary in system_binaries:
             if os.path.exists(binary):
                 self.project_files.append(binary)
@@ -298,7 +414,11 @@ class IPSnipeUninstaller:
     
     def uninstall_debian_tools(self, tools):
         """Uninstall tools on Debian/Ubuntu"""
-                    apt_tools = [tool for tool in tools if tool in ['nmap', 'ruby', 'whatweb']]
+        # Tools that can be installed via apt
+        apt_tools = [tool for tool in tools if tool in [
+            'nmap', 'ruby', 'whatweb', 'curl', 'dig', 'host', 'whois', 
+            'gobuster', 'dirb', 'dnsrecon'
+        ]]
         
         if apt_tools:
             try:
@@ -316,7 +436,12 @@ class IPSnipeUninstaller:
     
     def uninstall_macos_tools(self, tools):
         """Uninstall tools on macOS"""
-                    brew_tools = [tool for tool in tools if tool in ['nmap', 'feroxbuster', 'ffuf', 'ruby']]
+        # Tools that can be installed via brew
+        brew_tools = [tool for tool in tools if tool in [
+            'nmap', 'feroxbuster', 'ffuf', 'ruby', 'cewl', 'curl', 'dig', 'whois',
+            'waybackurls', 'subfinder', 'assetfinder', 'amass', 'gobuster', 
+            'nuclei', 'httpx', 'katana'
+        ]]
         
         if brew_tools and shutil.which('brew'):
             try:
@@ -334,7 +459,11 @@ class IPSnipeUninstaller:
     
     def uninstall_arch_tools(self, tools):
         """Uninstall tools on Arch Linux"""
-                    pacman_tools = [tool for tool in tools if tool in ['nmap', 'ruby', 'feroxbuster', 'ffuf', 'whatweb']]
+        # Tools that can be installed via pacman
+        pacman_tools = [tool for tool in tools if tool in [
+            'nmap', 'ruby', 'feroxbuster', 'ffuf', 'whatweb', 'curl', 'dig', 
+            'whois', 'gobuster', 'dirb'
+        ]]
         
         if pacman_tools:
             try:
@@ -351,22 +480,38 @@ class IPSnipeUninstaller:
         self.remove_manual_tools(tools)
     
     def remove_manual_tools(self, tools):
-        """Remove manually installed tools"""
-        manual_tools = ['theHarvester', 'whatweb']
-        manual_binaries = {
-            'theHarvester': '/usr/local/bin/theHarvester',
-            'whatweb': '/usr/local/bin/whatweb'
+        """Remove manually installed tools and Go-based tools"""
+        # Tools that are typically manually installed or via Go
+        manual_tools = [
+            'theHarvester', 'waybackurls', 'subfinder', 'assetfinder', 'amass',
+            'rustscan', 'nuclei', 'httpx', 'katana', 'paramspider'
+        ]
+        
+        # Common binary locations
+        binary_locations = {
+            'theHarvester': ['/usr/local/bin/theHarvester', '/usr/bin/theHarvester'],
+            'waybackurls': ['/usr/local/bin/waybackurls', '/usr/bin/waybackurls', '~/go/bin/waybackurls'],
+            'subfinder': ['/usr/local/bin/subfinder', '/usr/bin/subfinder', '~/go/bin/subfinder'],
+            'assetfinder': ['/usr/local/bin/assetfinder', '/usr/bin/assetfinder', '~/go/bin/assetfinder'],
+            'amass': ['/usr/local/bin/amass', '/usr/bin/amass', '~/go/bin/amass'],
+            'rustscan': ['/usr/local/bin/rustscan', '/usr/bin/rustscan'],
+            'nuclei': ['/usr/local/bin/nuclei', '/usr/bin/nuclei', '~/go/bin/nuclei'],
+            'httpx': ['/usr/local/bin/httpx', '/usr/bin/httpx', '~/go/bin/httpx'],
+            'katana': ['/usr/local/bin/katana', '/usr/bin/katana', '~/go/bin/katana'],
+            'paramspider': ['/usr/local/bin/paramspider', '/usr/bin/paramspider']
         }
         
         for tool in tools:
-            if tool in manual_tools and tool in manual_binaries:
-                binary_path = manual_binaries[tool]
-                if os.path.exists(binary_path):
-                    try:
-                        os.remove(binary_path)
-                        print(f"{Colors.GREEN}✅ Removed {binary_path}{Colors.NC}")
-                    except Exception as e:
-                        print(f"{Colors.RED}❌ Failed to remove {binary_path}: {e}{Colors.NC}")
+            if tool in manual_tools and tool in binary_locations:
+                for binary_path in binary_locations[tool]:
+                    # Expand ~ to home directory
+                    expanded_path = os.path.expanduser(binary_path)
+                    if os.path.exists(expanded_path):
+                        try:
+                            os.remove(expanded_path)
+                            print(f"{Colors.GREEN}✅ Removed {expanded_path}{Colors.NC}")
+                        except Exception as e:
+                            print(f"{Colors.RED}❌ Failed to remove {expanded_path}: {e}{Colors.NC}")
     
     def manual_tool_removal(self, tools):
         """Provide manual removal instructions"""

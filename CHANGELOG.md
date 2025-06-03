@@ -2,6 +2,170 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1] - 2024-12-18 - Portability & Installer Enhancement Edition
+
+### 🚀 Major Installer Improvements
+- **🌍 Eliminated Hard-coded Paths** - Complete portability enhancement
+  - Removed all hard-coded `/opt/homebrew` paths for Apple Silicon compatibility
+  - Added dynamic Homebrew detection supporting both `/opt/homebrew` (Apple Silicon) and `/usr/local` (Intel)
+  - Enhanced installer portability across different macOS configurations and architectures
+  - Improved cross-platform compatibility for various Linux distributions
+
+### 🔧 Enhanced macOS Support
+- **🍎 Intelligent macOS SSL Handling** - Fixed wfuzz installation issues
+  - Comprehensive SSL environment setup for pycurl installation
+  - Auto-detection of OpenSSL and curl-openssl Homebrew packages
+  - Smart fallback to modern alternatives (ffuf, feroxbuster) when wfuzz fails
+  - Proper SSL backend configuration following official wfuzz documentation
+
+### 🛠️ Python Environment Consistency
+- **🐍 Improved Python Detection** - Eliminated version conflicts
+  - Fixed Python executable detection inconsistencies between installer and verification
+  - Enhanced clarity about which Python version is being used during installation
+  - Eliminated redundant Python detection that caused version mismatches
+  - Added transparent reporting of system vs PATH-priority Python versions
+
+### 🧪 Robust Verification System
+- **✅ Enhanced Package Verification** - More reliable dependency checking
+  - Improved Python package detection with multiple fallback methods
+  - Fixed verification failures caused by PATH modifications during installation
+  - Enhanced error reporting and debugging capabilities
+  - Added comprehensive verification status for all components
+
+### 🔄 Smart Tool Management
+- **⚙️ Graceful Fallback Strategy** - Better handling of installation failures
+  - Intelligent handling of tools that fail to install (especially wfuzz on macOS)
+  - Clear communication about alternative tools when preferred options fail
+  - Maintained full functionality even when individual tools can't be installed
+  - Enhanced status reporting for optional vs required components
+
+### 🎯 Installation Process Improvements
+- **📦 Streamlined Package Management** - More reliable installation flow
+  - Fixed package synchronization between installer and uninstaller
+  - Corrected Python package list (removed unused colorama, ensured requests inclusion)
+  - Enhanced error recovery during installation process
+  - Improved handling of externally-managed Python environments
+
+### 🗑️ Uninstaller Enhancements
+- **🔧 Dynamic Path Detection** - Portable uninstall process
+  - Removed hard-coded paths in uninstaller matching installer improvements
+  - Enhanced tool detection across multiple installation paths
+  - Improved cleanup of manually installed tools and Go-based applications
+  - Better handling of various package manager installations
+
+### 🏗️ Development Infrastructure
+- **🛠️ Debugging Tools** - Enhanced troubleshooting capabilities
+  - Created comprehensive debugging scripts for installation issues
+  - Added detailed Python environment analysis tools
+  - Enhanced error reporting and diagnostic information
+  - Improved installation verification and status reporting
+
+### 🎨 User Experience Improvements
+- **📋 Clearer Installation Feedback** - Better user communication
+  - Enhanced status messages explaining installation decisions
+  - Clearer indication of which tools are optional vs required
+  - Better explanation of fallback strategies when tools fail
+  - Improved transparency about system configurations and choices
+
+### 🔍 Technical Improvements
+- **⚡ Performance Optimizations** - Faster, more reliable installation
+  - Reduced redundant operations during installation process
+  - Optimized PATH modifications and environment setup
+  - Enhanced parallel processing of installation tasks
+  - Improved timeout handling and error recovery
+
+---
+
+## [3.0] - 2024-12-18 - Full Sniper Mode Edition
+
+### 🎯 MAJOR RELEASE: Full Sniper Mode - Complete Reconnaissance Revolution
+
+This is a massive architectural overhaul that transforms ipsnipe from a multi-tool selector into a unified reconnaissance powerhouse. The entire interface and workflow have been redesigned around a single, comprehensive "Full Sniper Mode" that executes all tools in perfect harmony.
+
+### 🚀 HTB-Optimized Speed Improvements (Latest Update)
+- **⚡ Removed Quick Scan** - Eliminated redundant nmap_quick, focusing on single aggressive full scan
+- **🔥 High Min-Rate Implementation** - Added --min-rate 5000 for maximum scanning speed (HTB-optimized)
+- **🎯 Aggressive Full Scan** - Single comprehensive nmap scan with SYN scanning + high min-rate
+- **📉 Reduced Tool Count** - Streamlined from 11 to 10 tools for faster execution
+- **🏁 HTB-Focused** - Optimized for CTF environments where noise doesn't matter
+
+### 🚀 Revolutionary Full Sniper Mode Features
+- **🎯 Single Unified Mode** - No more complex tool selection menus - just activate Full Sniper Mode
+- **🔄 Intelligent Tool Orchestration** - All 11 tools execute in optimized order with intelligence flowing between them
+- **📊 Comprehensive Command Reporting** - Every tool shows exactly what command was executed for learning
+- **🎪 3-Phase Execution Model** - Network Discovery → DNS Intelligence → Web Application Analysis
+- **🧠 Intelligence Flow Architecture** - Each tool feeds data to enhance subsequent tools' effectiveness
+- **🕸️  Perfect Tool Synchronization** - No interference between tools, optimal resource utilization
+
+### 🔧 Complete Interface Redesign
+- **🎯 Streamlined User Experience** - Single confirmation replaces complex menu navigation
+- **📋 Execution Plan Preview** - Shows all tools grouped by phases before execution
+- **⏱️  Time Estimation** - Provides realistic completion time estimates (15-45 minutes)
+- **🎨 Enhanced Visual Design** - Red sniper theme with comprehensive progress indicators
+- **📊 Real-time Phase Tracking** - Clear visual indicators of current execution phase
+
+### 🛠️ Advanced Tool Integration
+- **🔍 Phase 1: Network Discovery**
+  - Nmap Quick Scan → Fast port discovery and service detection
+  - Nmap Full Scan → Comprehensive port scan with vulnerability scripts  
+  - Nmap UDP Scan → UDP port discovery (requires sudo privileges)
+
+- **🌐 Phase 2: DNS & Domain Intelligence**
+  - DNS Enumeration → Comprehensive DNS enumeration with dig
+  - Advanced DNS → HTB-optimized DNS with certificate transparency
+  - theHarvester → Email addresses and subdomain enumeration
+
+- **🕸️  Phase 3: Web Application Analysis**
+  - Enhanced Web Discovery → HTB-optimized web content discovery
+  - Feroxbuster → Fast directory and file enumeration
+  - FFUF → Virtual host and subdomain enumeration
+  - CMS Scan → CMS identification and security analysis
+  - Parameter/LFI Scan → Parameter discovery and LFI vulnerability testing
+
+### 📊 Enhanced Reporting & Intelligence
+- **🎯 Comprehensive Final Report** - Shows intelligence gathered, tool execution status, and command details
+- **🧠 Intelligence Summary** - Displays discovered ports, web services, and domains
+- **📁 Organized Output Structure** - All results, findings, summaries, and individual tool reports
+- **🔍 Detailed Tool Execution Report** - Status and commands for every tool executed
+- **📈 Success/Skip/Failure Metrics** - Complete transparency on tool performance
+
+### ⚙️ Configuration Enhancements
+- **🎯 New [full_sniper_mode] Section** - Complete control over Full Sniper Mode behavior
+- **🔄 Intelligence Flow Control** - Enable/disable automatic tool data sharing
+- **📊 Command Detail Control** - Show/hide exact commands for learning purposes
+- **⏱️  Execution Control** - Timeouts, auto-skip failed tools, progress indicators
+- **🛠️  Tool Order Optimization** - Configurable but optimized execution sequence
+
+### 🎮 User Experience Revolution
+- **🎯 Zero Decision Fatigue** - No complex tool selection, just "activate Full Sniper Mode"
+- **📚 Educational Focus** - Shows commands and purposes for learning
+- **🔄 Graceful Error Handling** - Failed tools don't stop the entire reconnaissance
+- **⏸️  Interactive Controls** - Skip individual tools or quit all with simple commands
+- **🎪 Professional Presentation** - Clean, organized output with clear phase separation
+
+### 📖 Architectural Improvements
+- **🧠 Smart Dependencies** - Tools automatically use data from previous tools
+- **🔄 Automatic Web Port Discovery** - Web tools work even without nmap discoveries
+- **🌐 Domain Resolution Management** - Automatic /etc/hosts management for discovered domains
+- **📊 Resource Optimization** - Tools run without interfering with each other
+- **🛡️  Error Isolation** - Individual tool failures don't cascade to other tools
+
+### 💪 Performance & Reliability
+- **⚡ Optimized Execution Order** - Maximum intelligence gathering efficiency
+- **🔄 Robust Error Recovery** - Continue execution despite individual tool failures
+- **📊 Resource Management** - Intelligent thread and timeout management across all tools
+- **🎯 Focused Output** - Reduced noise, enhanced signal in results
+- **🛠️  Tool Harmony** - Perfect synchronization prevents conflicts
+
+### 🎓 Learning & Development Benefits
+- **📚 Command Transparency** - See exactly what commands professionals use
+- **🎯 Workflow Understanding** - Learn proper reconnaissance phase sequencing
+- **📊 Results Correlation** - Understand how tools build upon each other
+- **🔍 Professional Methodology** - Experience industry-standard reconnaissance workflow
+- **🧠 Intelligence Analysis** - Learn to correlate findings across multiple tools
+
+---
+
 ## [2.2] - 2024-12-18 - HTB Optimized Edition
 
 ### 🎯 Major HTB-Optimized Features Added

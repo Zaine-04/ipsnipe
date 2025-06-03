@@ -51,21 +51,65 @@ detect_os() {
 
 # Check if a command exists
 check_command() {
-    command -v "$1" &> /dev/null
+    local cmd="$1"
+    
+    # Method 1: command -v (most reliable in shell)
+    if command -v "$cmd" &> /dev/null; then
+        return 0
+    fi
+    
+    # Method 2: which command
+    if which "$cmd" &> /dev/null; then
+        return 0
+    fi
+    
+    # Method 3: direct path check for common locations
+            # Check common installation paths (auto-detect Homebrew)
+        SEARCH_PATHS=("/usr/local/bin/$cmd" "/usr/bin/$cmd" "$HOME/go/bin/$cmd")
+        
+        # Add Homebrew paths dynamically
+        for brew_path in "/opt/homebrew" "/usr/local"; do
+            [[ -d "$brew_path/bin" ]] && SEARCH_PATHS+=("$brew_path/bin/$cmd")
+        done
+        
+        for path in "${SEARCH_PATHS[@]}"; do
+        if [[ -x "$path" ]]; then
+            return 0
+        fi
+    done
+    
+    return 1
 }
 
 # Check if a Python package is installed
 check_python_package() {
-    python3 -c "import $1" &> /dev/null
+    local package="$1"
+    
+    # Method 1: Direct import test
+    if python3 -c "import $package" &> /dev/null; then
+        return 0
+    fi
+    
+    # Method 2: pip show check
+    if python3 -m pip show "$package" &> /dev/null; then
+        return 0
+    fi
+    
+    # Method 3: pip list check
+    if python3 -m pip list 2>/dev/null | grep -i "^$package " &> /dev/null; then
+        return 0
+    fi
+    
+    return 1
 }
 
 # Scan for installed dependencies
 scan_dependencies() {
     echo -e "${YELLOW}🔍 Scanning for installed dependencies...${NC}\n"
     
-    # Python packages
+    # Python packages (updated)
     echo -e "${CYAN}🐍 Python Packages:${NC}"
-    PYTHON_PACKAGES=("toml" "colorama" "rich")
+    PYTHON_PACKAGES=("toml" "rich" "requests")
     INSTALLED_PYTHON=()
     
     for package in "${PYTHON_PACKAGES[@]}"; do
@@ -77,9 +121,9 @@ scan_dependencies() {
         fi
     done
     
-    # System tools
+    # System tools (updated)
     echo -e "\n${CYAN}🛠️  System Tools:${NC}"
-    SYSTEM_TOOLS=("nmap" "feroxbuster" "ffuf" "theHarvester" "whatweb" "ruby")
+    SYSTEM_TOOLS=("nmap" "feroxbuster" "ffuf" "theHarvester" "whatweb" "ruby" "cewl" "curl" "dig" "host" "whois" "waybackurls" "subfinder" "assetfinder" "amass" "dnsrecon" "rustscan" "gobuster" "dirb" "nuclei" "httpx" "katana" "paramspider")
     INSTALLED_TOOLS=()
     
     for tool in "${SYSTEM_TOOLS[@]}"; do
@@ -91,20 +135,49 @@ scan_dependencies() {
         fi
     done
     
-    # Project files
-    echo -e "\n${CYAN}📁 Project Files:${NC}"
-    PROJECT_FILES=("ipsnipe.py" "ipsnipe/" "requirements.txt" "install.sh" "config.toml" "README.md" "LICENSE")
+    # Project files and directories (updated)
+    echo -e "\n${CYAN}📁 Project Files & Directories:${NC}"
+    PROJECT_ITEMS=(
+        # Main files
+        "ipsnipe.py" "requirements.txt" "install.sh" "config.toml" "README.md" "LICENSE" 
+        "CHANGELOG.md" "uninstall.py" "uninstall.sh" ".gitignore" "UI_IMPROVEMENT_SUMMARY.md"
+        # Main directories
+        "ipsnipe/" "legacy_file/" "misc/" "__pycache__/" ".git/" ".vscode/"
+        # Python cache directories
+        "ipsnipe/__pycache__/" "ipsnipe/ui/__pycache__/" "ipsnipe/scanners/__pycache__/"
+        "ipsnipe/core/__pycache__/" "legacy_file/__pycache__/"
+        # macOS files
+        ".DS_Store"
+    )
     FOUND_FILES=()
     
-    for file in "${PROJECT_FILES[@]}"; do
-        if [[ -e "$file" ]]; then
-            FOUND_FILES+=("$file")
-            echo -e "${GREEN}✅ $file - FOUND${NC}"
+    for item in "${PROJECT_ITEMS[@]}"; do
+        if [[ -e "$item" ]]; then
+            FOUND_FILES+=("$item")
+            if [[ -d "$item" ]]; then
+                echo -e "${GREEN}✅ $item (directory) - FOUND${NC}"
+            else
+                echo -e "${GREEN}✅ $item - FOUND${NC}"
+            fi
         fi
     done
     
-    # System binaries
-    SYSTEM_BINARIES=("/usr/local/bin/theHarvester" "/usr/local/bin/whatweb")
+    # Check for scan result directories (ipsnipe_scan_*)
+    for scan_dir in ipsnipe_scan_*; do
+        if [[ -d "$scan_dir" ]]; then
+            FOUND_FILES+=("$scan_dir")
+            echo -e "${GREEN}✅ $scan_dir (scan results) - FOUND${NC}"
+        fi
+    done
+    
+    # System binaries (updated)
+    SYSTEM_BINARIES=(
+        "/usr/local/bin/theHarvester" "/usr/local/bin/whatweb" "/usr/local/bin/feroxbuster"
+        "/usr/local/bin/ffuf" "/usr/local/bin/gobuster" "/usr/local/bin/nuclei"
+        "/usr/local/bin/httpx" "/usr/local/bin/katana" "/usr/local/bin/waybackurls"
+        "/usr/local/bin/subfinder" "/usr/local/bin/assetfinder" "/usr/local/bin/amass"
+        "/usr/local/bin/rustscan" "/usr/local/bin/paramspider"
+    )
     for binary in "${SYSTEM_BINARIES[@]}"; do
         if [[ -e "$binary" ]]; then
             FOUND_FILES+=("$binary")
@@ -320,7 +393,7 @@ uninstall_system_tools() {
         "debian")
             APT_TOOLS=()
             for tool in "${REMOVE_TOOLS[@]}"; do
-                if [[ "$tool" =~ ^(nmap|ruby|whatweb)$ ]]; then
+                if [[ "$tool" =~ ^(nmap|ruby|whatweb|curl|dig|host|whois|gobuster|dirb|dnsrecon)$ ]]; then
                     APT_TOOLS+=("$tool")
                 fi
             done
@@ -339,7 +412,7 @@ uninstall_system_tools() {
             if command -v brew &> /dev/null; then
                 BREW_TOOLS=()
                 for tool in "${REMOVE_TOOLS[@]}"; do
-                    if [[ "$tool" =~ ^(nmap|feroxbuster|ffuf|ruby)$ ]]; then
+                    if [[ "$tool" =~ ^(nmap|feroxbuster|ffuf|ruby|cewl|curl|dig|whois|waybackurls|subfinder|assetfinder|amass|gobuster|nuclei|httpx|katana)$ ]]; then
                         BREW_TOOLS+=("$tool")
                     fi
                 done
@@ -358,7 +431,7 @@ uninstall_system_tools() {
         "arch")
             PACMAN_TOOLS=()
             for tool in "${REMOVE_TOOLS[@]}"; do
-                if [[ "$tool" =~ ^(nmap|ruby|feroxbuster|ffuf|whatweb)$ ]]; then
+                if [[ "$tool" =~ ^(nmap|ruby|feroxbuster|ffuf|whatweb|curl|dig|whois|gobuster|dirb)$ ]]; then
                     PACMAN_TOOLS+=("$tool")
                 fi
             done
@@ -374,22 +447,90 @@ uninstall_system_tools() {
             ;;
     esac
     
-    # Remove manually installed tools
-    MANUAL_TOOLS=("theHarvester" "whatweb")
+    # Remove manually installed tools and Go-based tools
+    MANUAL_TOOLS=("theHarvester" "waybackurls" "subfinder" "assetfinder" "amass" "rustscan" "nuclei" "httpx" "katana" "paramspider")
     for tool in "${REMOVE_TOOLS[@]}"; do
         if [[ " ${MANUAL_TOOLS[@]} " =~ " ${tool} " ]]; then
             case $tool in
                 "theHarvester")
-                    if [[ -f "/usr/local/bin/theHarvester" ]]; then
-                        sudo rm -f "/usr/local/bin/theHarvester"
-                        echo -e "${GREEN}✅ Removed /usr/local/bin/theHarvester${NC}"
-                    fi
+                    for path in "/usr/local/bin/theHarvester" "/usr/bin/theHarvester"; do
+                        if [[ -f "$path" ]]; then
+                            sudo rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
                     ;;
-                "whatweb")
-                    if [[ -f "/usr/local/bin/whatweb" ]]; then
-                        sudo rm -f "/usr/local/bin/whatweb"
-                        echo -e "${GREEN}✅ Removed /usr/local/bin/whatweb${NC}"
-                    fi
+                "waybackurls")
+                    for path in "/usr/local/bin/waybackurls" "/usr/bin/waybackurls" "$HOME/go/bin/waybackurls"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "subfinder")
+                    for path in "/usr/local/bin/subfinder" "/usr/bin/subfinder" "$HOME/go/bin/subfinder"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "assetfinder")
+                    for path in "/usr/local/bin/assetfinder" "/usr/bin/assetfinder" "$HOME/go/bin/assetfinder"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "amass")
+                    for path in "/usr/local/bin/amass" "/usr/bin/amass" "$HOME/go/bin/amass"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "rustscan")
+                    for path in "/usr/local/bin/rustscan" "/usr/bin/rustscan"; do
+                        if [[ -f "$path" ]]; then
+                            sudo rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "nuclei")
+                    for path in "/usr/local/bin/nuclei" "/usr/bin/nuclei" "$HOME/go/bin/nuclei"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "httpx")
+                    for path in "/usr/local/bin/httpx" "/usr/bin/httpx" "$HOME/go/bin/httpx"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "katana")
+                    for path in "/usr/local/bin/katana" "/usr/bin/katana" "$HOME/go/bin/katana"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
+                    ;;
+                "paramspider")
+                    for path in "/usr/local/bin/paramspider" "/usr/bin/paramspider"; do
+                        if [[ -f "$path" ]]; then
+                            rm -f "$path"
+                            echo -e "${GREEN}✅ Removed $path${NC}"
+                        fi
+                    done
                     ;;
             esac
         fi

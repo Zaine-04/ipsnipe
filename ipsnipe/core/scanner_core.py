@@ -329,23 +329,97 @@ class ScannerCore:
     
     def check_dependencies(self) -> bool:
         """Check if required tools are installed"""
-        tools = ['nmap', 'whatweb', 'feroxbuster', 'ffuf', 'theHarvester', 'wfuzz', 'arjun', 'paramspider', 'cmseek', 'curl']
-        missing_tools = []
+        # Categorize tools by importance
+        core_tools = ['nmap', 'curl']  # Essential tools
+        web_tools = ['whatweb', 'feroxbuster', 'ffuf']  # Web reconnaissance
+        advanced_tools = ['theHarvester', 'arjun', 'paramspider', 'cmseek', 'cewl']  # Advanced/optional
+        
+        # Tools with alternatives (checked differently)
+        fuzzing_alternatives = ['wfuzz', 'ffuf', 'feroxbuster']  # Any one of these for web fuzzing
         
         print(f"{Colors.YELLOW}🔍 Checking dependencies...{Colors.END}")
         
-        for tool in tools:
+        # Check core tools (must have these)
+        missing_core = []
+        for tool in core_tools:
             try:
                 subprocess.run(['which', tool], capture_output=True, check=True)
                 print(f"{Colors.GREEN}✅ {tool} found{Colors.END}")
             except subprocess.CalledProcessError:
-                print(f"{Colors.YELLOW}⚠️  {tool} not found{Colors.END}")
-                missing_tools.append(tool)
+                print(f"{Colors.RED}❌ {tool} not found (REQUIRED){Colors.END}")
+                missing_core.append(tool)
         
-        if missing_tools:
-            print(f"\n{Colors.YELLOW}⚠️  Missing tools: {', '.join(missing_tools)}{Colors.END}")
-            print(f"{Colors.CYAN}💡 Install missing tools to use all features{Colors.END}")
+        # Check web tools (important but not critical)
+        missing_web = []
+        for tool in web_tools:
+            try:
+                subprocess.run(['which', tool], capture_output=True, check=True)
+                print(f"{Colors.GREEN}✅ {tool} found{Colors.END}")
+            except subprocess.CalledProcessError:
+                print(f"{Colors.YELLOW}⚠️  {tool} not found (web features limited){Colors.END}")
+                missing_web.append(tool)
+        
+        # Check fuzzing alternatives (need at least one)
+        fuzzing_tool_found = False
+        fuzzing_status = []
+        for tool in fuzzing_alternatives:
+            try:
+                subprocess.run(['which', tool], capture_output=True, check=True)
+                print(f"{Colors.GREEN}✅ {tool} found (web fuzzing){Colors.END}")
+                fuzzing_tool_found = True
+                if tool == 'wfuzz':
+                    fuzzing_status.append(f"{tool} (legacy)")
+                else:
+                    fuzzing_status.append(f"{tool} (modern)")
+            except subprocess.CalledProcessError:
+                if tool == 'wfuzz':
+                    print(f"{Colors.BLUE}ℹ️  {tool} not found (replaced by ffuf/feroxbuster){Colors.END}")
+                else:
+                    print(f"{Colors.CYAN}ℹ️  {tool} not found{Colors.END}")
+        
+        if not fuzzing_tool_found:
+            print(f"{Colors.YELLOW}⚠️  No web fuzzing tools available (limited directory discovery){Colors.END}")
+        
+        # Check advanced tools (nice to have)
+        missing_advanced = []
+        for tool in advanced_tools:
+            try:
+                subprocess.run(['which', tool], capture_output=True, check=True)
+                print(f"{Colors.GREEN}✅ {tool} found{Colors.END}")
+            except subprocess.CalledProcessError:
+                print(f"{Colors.CYAN}ℹ️  {tool} not found (advanced features unavailable){Colors.END}")
+                missing_advanced.append(tool)
+        
+        # Summary and recommendations
+        if missing_core:
+            print(f"\n{Colors.RED}❌ Critical tools missing: {', '.join(missing_core)}{Colors.END}")
+            print(f"{Colors.RED}🛑 ipsnipe cannot run without these core tools{Colors.END}")
+            print(f"{Colors.CYAN}💡 Install with: brew install {' '.join(missing_core)} (macOS) or apt install {' '.join(missing_core)} (Ubuntu){Colors.END}")
             return False
+        
+        if missing_web or missing_advanced or not fuzzing_tool_found:
+            total_missing = len(missing_web) + len(missing_advanced) + (0 if fuzzing_tool_found else 1)
+            total_tools = len(web_tools) + len(advanced_tools) + 1  # +1 for fuzzing tools group
+            available_pct = ((total_tools - total_missing) / total_tools) * 100
+            
+            print(f"\n{Colors.GREEN}✅ Core tools ready - ipsnipe can run!{Colors.END}")
+            print(f"{Colors.CYAN}📊 Tool availability: {available_pct:.0f}% ({total_tools - total_missing}/{total_tools} optional tools){Colors.END}")
+            
+            if fuzzing_tool_found:
+                print(f"{Colors.GREEN}🔍 Web fuzzing available: {', '.join(fuzzing_status)}{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️  No web fuzzing tools available (install ffuf or feroxbuster){Colors.END}")
+            
+            if missing_web:
+                print(f"{Colors.YELLOW}⚠️  Limited web features due to missing: {', '.join(missing_web)}{Colors.END}")
+            
+            if missing_advanced:
+                print(f"{Colors.CYAN}ℹ️  Advanced features unavailable: {', '.join(missing_advanced)}{Colors.END}")
+            
+            print(f"{Colors.CYAN}💡 Run './install.sh' to install missing tools{Colors.END}")
+            return True
         else:
-            print(f"{Colors.GREEN}✅ All dependencies found!{Colors.END}")
+            print(f"\n{Colors.GREEN}🎉 All tools found! Full functionality available{Colors.END}")
+            if fuzzing_tool_found:
+                print(f"{Colors.GREEN}🔍 Web fuzzing available: {', '.join(fuzzing_status)}{Colors.END}")
             return True 

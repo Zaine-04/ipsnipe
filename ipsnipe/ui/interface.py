@@ -1,62 +1,38 @@
 #!/usr/bin/env python3
 """
-User interface functionality for ipsnipe
-Handles menus, user input, disclaimers, and interactions
+Rich-powered user interface for ipsnipe
+Simplified menus, prompts, and interactions
 """
 
 import subprocess
 import os
 from typing import List
 from pathlib import Path
-from .colors import Colors, print_banner
+from rich.console import Console
+from rich.prompt import Prompt, Confirm
+from rich.table import Table
+from rich.panel import Panel
+from .colors import print_banner, console
 from .validators import Validators
 
 
 class UserInterface:
-    """User interface and interaction handling"""
+    """Rich-powered user interface and interaction handling"""
     
     def __init__(self):
-        pass
+        self.console = console
     
     def show_disclaimer(self):
-        """Show ethical use disclaimer"""
-        disclaimer = f"""
-{Colors.BOLD}{Colors.RED}⚠️  ETHICAL USE DISCLAIMER ⚠️{Colors.END}
-
-{Colors.YELLOW}ipsnipe is a reconnaissance tool designed for ethical hacking, 
-penetration testing, and security research purposes ONLY.{Colors.END}
-
-{Colors.BOLD}YOU MUST:{Colors.END}
-✅ Only use this tool on systems you own or have explicit written permission to test
-✅ Comply with all applicable local, state, and federal laws
-✅ Respect the privacy and rights of others
-✅ Use findings responsibly and report vulnerabilities appropriately
-
-{Colors.BOLD}YOU MUST NOT:{Colors.END}
-❌ Use this tool for illegal activities or unauthorized access
-❌ Test systems without proper authorization
-❌ Cause damage to systems or networks
-❌ Violate terms of service or acceptable use policies
-
-{Colors.RED}The developers of ipsnipe are not responsible for any misuse 
-of this tool or any damages caused by its use.{Colors.END}
-
-{Colors.CYAN}By using ipsnipe, you acknowledge that you understand and agree 
-to use this tool in a legal and ethical manner only.{Colors.END}
-        """
+        """Show simplified ethical use disclaimer"""
+        self.console.print("\n⚠️  ETHICAL USE ONLY ⚠️", style="bold red")
+        self.console.print("This tool is for authorized testing only.", style="yellow")
+        self.console.print("Only scan systems you own or have permission to test.", style="cyan")
         
-        print(disclaimer)
+        if not Confirm.ask("\nAgree to ethical use?"):
+            self.console.print("❌ Exiting...", style="red")
+            exit(1)
         
-        while True:
-            response = input(f"\n{Colors.BOLD}Do you agree to use ipsnipe ethically and legally? (yes/no): {Colors.END}").strip().lower()
-            if response in ['yes', 'y']:
-                print(f"{Colors.GREEN}✅ Thank you for your commitment to ethical use!{Colors.END}\n")
-                break
-            elif response in ['no', 'n']:
-                print(f"{Colors.RED}❌ You must agree to ethical use to continue. Exiting...{Colors.END}")
-                exit(1)
-            else:
-                print(f"{Colors.YELLOW}Please answer 'yes' or 'no'{Colors.END}")
+        self.console.print("✅ Ethical use acknowledged", style="green")
     
     def check_root_privileges(self) -> bool:
         """Check if running with root privileges"""
@@ -71,95 +47,47 @@ to use this tool in a legal and ethical manner only.{Colors.END}
             return False
     
     def get_sudo_mode_preference(self, force_mode=None) -> bool:
-        """Get user preference for Enhanced Mode (sudo)"""
+        """Get user preference for Enhanced Mode (sudo) - simplified"""
         if force_mode is not None:
             return force_mode
         
-        print(f"\n{Colors.BOLD}{Colors.CYAN}🔐 ipsnipe Enhanced Mode Selection{Colors.END}")
-        print(f"{Colors.CYAN}════════════════════════════════════{Colors.END}\n")
+        self.console.print("\n🔐 Scan Mode", style="bold cyan")
         
         is_root = self.check_root_privileges()
-        has_sudo = self.test_sudo_access()
-        
         if is_root:
-            print(f"{Colors.GREEN}✅ Running as root - Enhanced Mode automatically enabled{Colors.END}")
-            print(f"{Colors.CYAN}Features: SYN scans, OS detection, UDP scans{Colors.END}")
+            self.console.print("✅ Running as root - Enhanced mode enabled", style="green")
             return True
         
-        if has_sudo:
-            print(f"{Colors.GREEN}✅ Sudo access detected{Colors.END}")
-            print(f"\n{Colors.BOLD}Choose scan mode:{Colors.END}")
-            print(f"  {Colors.GREEN}1) Enhanced Mode (sudo){Colors.END} - SYN scans, OS detection, UDP scans")
-            print(f"  {Colors.YELLOW}2) Standard Mode{Colors.END} - TCP connect scans only")
-            
-            while True:
-                choice = input(f"\n{Colors.CYAN}Select mode (1-2, default: 1): {Colors.END}").strip()
-                
-                if choice in ['1', ''] or choice.lower() in ['enhanced', 'e']:
-                    print(f"{Colors.GREEN}✅ Enhanced Mode selected - Using sudo for advanced scanning{Colors.END}")
-                    return True
-                elif choice in ['2'] or choice.lower() in ['standard', 's']:
-                    print(f"{Colors.YELLOW}⚡ Standard Mode selected - Basic TCP scanning{Colors.END}")
-                    return False
-                else:
-                    print(f"{Colors.RED}Invalid choice. Please select 1 or 2.{Colors.END}")
+        has_sudo = self.test_sudo_access()
+        
+        # Simplified explanation
+        self.console.print("\nEnhanced mode enables faster, more comprehensive scans", style="cyan")
+        if not has_sudo:
+            self.console.print("⚠️  May require password", style="yellow")
+        
+        if Confirm.ask("\nUse enhanced mode?", default=True):
+            self.console.print("✅ Enhanced mode enabled", style="green")
+            return True
         else:
-            print(f"{Colors.YELLOW}⚠️  No sudo access detected{Colors.END}")
-            print(f"{Colors.CYAN}Running in Standard Mode - TCP connect scans only{Colors.END}")
-            print(f"{Colors.CYAN}💡 For Enhanced Mode features, ensure sudo access is available{Colors.END}")
+            self.console.print("⚡ Standard mode selected", style="yellow")
             return False
     
     def get_target_ip(self) -> str:
-        """Get and validate target IP address"""
-        print(f"\n{Colors.BOLD}{Colors.CYAN}🎯 Target Selection{Colors.END}")
-        print(f"{Colors.CYAN}═══════════════════{Colors.END}")
+        """Get and validate target IP address - simplified"""
+        self.console.print("\n🎯 Target", style="bold cyan")
         
         while True:
-            ip = input(f"\n{Colors.CYAN}Enter target IP address: {Colors.END}").strip()
+            ip = Prompt.ask("IP address").strip()
             
             if not ip:
-                print(f"{Colors.RED}Please enter an IP address{Colors.END}")
+                self.console.print("Please enter an IP address", style="red")
                 continue
             
             if Validators.validate_ip(ip):
-                print(f"{Colors.GREEN}✅ Valid IP address: {ip}{Colors.END}")
+                self.console.print(f"✅ Target set: {ip}", style="green")
                 return ip
             else:
-                print(f"{Colors.RED}❌ Invalid IP address format. Please try again.{Colors.END}")
-                print(f"{Colors.CYAN}💡 Example: 192.168.1.1{Colors.END}")
-    
-    def get_port_range_input(self) -> str:
-        """Get port range input from user"""
-        print(f"\n{Colors.BOLD}{Colors.CYAN}🔌 Port Range Selection{Colors.END}")
-        print(f"{Colors.CYAN}═══════════════════════════{Colors.END}")
-        
-        print(f"\n{Colors.BOLD}Port range options:{Colors.END}")
-        print(f"  📋 {Colors.GREEN}default{Colors.END} - Use tool defaults (recommended)")
-        print(f"  🔢 {Colors.YELLOW}1-1000{Colors.END} - Scan ports 1 to 1000")
-        print(f"  🎯 {Colors.YELLOW}80,443,8080{Colors.END} - Scan specific ports")
-        print(f"  🌐 {Colors.YELLOW}80-443{Colors.END} - Scan port range")
-        print(f"  📡 {Colors.CYAN}1-65535{Colors.END} - Full port scan (slow)")
-        
-        while True:
-            port_range = input(f"\n{Colors.CYAN}Enter port range (default: default): {Colors.END}").strip()
-            
-            if not port_range or port_range.lower() == 'default':
-                print(f"{Colors.GREEN}✅ Using default port ranges{Colors.END}")
-                return 'default'
-            
-            if Validators.validate_port_range(port_range):
-                normalized = Validators.normalize_port_range(port_range)
-                print(f"{Colors.GREEN}✅ Valid port range: {normalized}{Colors.END}")
-                
-                # Show warning for large ranges
-                ports = Validators.expand_port_range(normalized)
-                if len(ports) > 1000:
-                    print(f"{Colors.YELLOW}⚠️  Large port range ({len(ports)} ports) - scan may take a while{Colors.END}")
-                
-                return normalized
-            else:
-                print(f"{Colors.RED}❌ Invalid port range format{Colors.END}")
-                print(f"{Colors.CYAN}💡 Valid formats: 80, 80-443, 80,443,8080{Colors.END}")
+                self.console.print("❌ Invalid format (example: 192.168.1.1)", style="red")
     
     def create_output_directory(self, ip: str) -> str:
         """Create output directory for scan results"""
@@ -173,94 +101,71 @@ to use this tool in a legal and ethical manner only.{Colors.END}
             counter += 1
         
         output_dir.mkdir(parents=True, exist_ok=True)
-        print(f"{Colors.GREEN}📁 Created output directory: {output_dir}{Colors.END}")
+        self.console.print(f"📁 Output: {output_dir.name}", style="green")
         return str(output_dir)
     
     def show_attack_menu(self) -> List[str]:
-        """Display attack selection menu and return selected attacks"""
-        print(f"\n{Colors.BOLD}{Colors.CYAN}🛡️  ipsnipe Reconnaissance Suite{Colors.END}")
-        print(f"{Colors.CYAN}═══════════════════════════════════════{Colors.END}")
+        """Show Full Sniper Mode explanation and workflow"""
+        # Create a beautiful panel for the title
+        title_panel = Panel(
+            "[red]🎯 Full Sniper Mode[/red]\n[cyan]Complete reconnaissance suite with intelligent workflow[/cyan]\n[yellow]📢 Other scan modes coming soon![/yellow]",
+            border_style="bright_blue"
+        )
+        self.console.print(title_panel)
         
-        attacks = {
-            '1': ('nmap_quick', '🔍 Nmap Quick Scan', 'Fast port discovery and service detection'),
-            '2': ('nmap_full', '🔎 Nmap Full Scan', 'Comprehensive port scan with scripts'),
-            '3': ('nmap_udp', '📡 Nmap UDP Scan', 'UDP port discovery (requires sudo)'),
-            '4': ('feroxbuster', '🦀 Feroxbuster', 'Directory enumeration (auto-discovers web ports if needed)'),
-            '5': ('ffuf', '💨 FFUF', 'Subdomain enumeration (auto-discovers web ports if needed)'),
-            '6': ('param_lfi_scan', '🎯 Parameter Discovery & LFI Testing', 'Comprehensive parameter fuzzing and LFI testing (auto-discovers web ports)'),
-            '7': ('cms_scan', '🏗️ CMS Detection & Enumeration', 'Comprehensive CMS identification and security analysis (auto-discovers web ports)'),
-            '8': ('dns_enumeration', '🌐 DNS Enumeration', 'Comprehensive DNS enumeration with dig (zone transfers, subdomains, wildcards)'),
-            '9': ('advanced_dns', '🚀 Advanced DNS Enumeration', 'HTB-optimized DNS enumeration with certificate transparency, zone transfers, and advanced tools'),
-            '10': ('enhanced_web', '🌐 Enhanced Web Discovery', 'HTB-optimized web content discovery with JavaScript analysis and multi-tool enumeration'),
-            '11': ('theharvester', '📧 theHarvester', 'Email and subdomain enumeration')
-        }
+        # Create workflow table
+        workflow_table = Table(title="🔄 Three-Phase Workflow", show_header=True, header_style="bold magenta")
+        workflow_table.add_column("Phase", style="cyan", width=6)
+        workflow_table.add_column("Name", style="green", width=20)
+        workflow_table.add_column("Description", style="white")
         
-        print(f"\n{Colors.BOLD}Available reconnaissance modules:{Colors.END}")
-        for key, (_, name, desc) in attacks.items():
-            print(f"  {Colors.YELLOW}{key.rjust(2)}) {name}{Colors.END} - {desc}")
+        workflow_table.add_row("1", "Network Discovery", "Port scanning & service detection")
+        workflow_table.add_row("2", "Domain Intelligence", "DNS enumeration & domain discovery")
+        workflow_table.add_row("3", "Web Analysis", "Content discovery & vulnerability testing")
         
-        print(f"\n{Colors.PURPLE}💡 Automatic Integration:{Colors.END}")
-        print(f"{Colors.CYAN}   • Web service detection runs automatically with nmap scans{Colors.END}")
-        print(f"{Colors.CYAN}   • WhatWeb runs automatically when web ports are discovered{Colors.END}")
-        print(f"{Colors.CYAN}   • Web tools auto-discover ports if no nmap scan is run{Colors.END}")
-        print(f"{Colors.CYAN}   • During scans, press 's' + Enter to skip current scan{Colors.END}")
-        print(f"{Colors.CYAN}   • Press 'q' + Enter to quit all remaining scans{Colors.END}")
+        self.console.print(workflow_table)
         
-        while True:
-            selection = input(f"\n{Colors.CYAN}Select modules (comma-separated, e.g., 1,2,4 or 'all'): {Colors.END}").strip()
-            
-            if not selection:
-                print(f"{Colors.RED}Please make a selection{Colors.END}")
-                continue
-            
-            try:
-                selected_attacks = []
-                
-                if selection.lower() == 'all':
-                    selected_attacks = [attack for attack, _, _ in attacks.values()]
-                else:
-                    # Parse individual selections
-                    choices = [choice.strip() for choice in selection.split(',')]
-                    for choice in choices:
-                        if choice in attacks:
-                            attack_name = attacks[choice][0]
-                            if attack_name not in selected_attacks:
-                                selected_attacks.append(attack_name)
-                        else:
-                            print(f"{Colors.RED}Invalid selection: {choice}{Colors.END}")
-                            raise ValueError("Invalid selection")
-                
-                if selected_attacks:
-                    print(f"\n{Colors.GREEN}✅ Selected {len(selected_attacks)} module(s):{Colors.END}")
-                    for attack in selected_attacks:
-                        attack_info = next((info for key, info in attacks.items() if info[0] == attack), None)
-                        if attack_info:
-                            print(f"  • {attack_info[1]}")
-                    return selected_attacks
-                else:
-                    print(f"{Colors.RED}No valid modules selected{Colors.END}")
-                    
-            except ValueError:
-                print(f"{Colors.RED}Invalid selection format. Please try again.{Colors.END}")
-                print(f"{Colors.CYAN}💡 Use numbers (1,2,3) or 'all'{Colors.END}")
+        # Tools info
+        self.console.print("\n🛠️  10 Integrated Tools:", style="bold")
+        self.console.print("  🔎 Network Scan • 📡 UDP Scan • 🌐 DNS Enum • 🚀 Advanced DNS")
+        self.console.print("  📧 Email Harvest • 🌐 Web Discovery • 🦀 Directory Scan")
+        self.console.print("  💨 Subdomain Fuzz • 🏗️ CMS Detection • 🎯 Parameter Test")
+        
+        # Smart features
+        self.console.print("\n💡 Smart Features:", style="cyan")
+        self.console.print("  • Automatic domain discovery & /etc/hosts management")
+        self.console.print("  • Intelligent tool chaining (results feed next tools)")
+        self.console.print("  • Real-time controls: 's' to skip, 'q' to quit")
+        
+        self.console.print("\n⏱️  Estimated time: 30-60 minutes", style="yellow")
+        
+        if Confirm.ask("\nExecute Full Sniper Mode?", default=True):
+            self.console.print("✅ Full Sniper Mode activated", style="green")
+            # Return all tools for Full Sniper Mode
+            return ['nmap_full', 'nmap_udp', 'dns_enumeration', 'advanced_dns', 
+                   'theharvester', 'enhanced_web', 'feroxbuster', 'ffuf', 
+                   'cms_scan', 'param_lfi_scan']
+        else:
+            self.console.print("👋 Reconnaissance cancelled.", style="yellow")
+            exit(0)
     
     def show_scan_summary(self, target_ip: str, output_dir: str, enhanced_mode: bool, selected_attacks: List[str]) -> bool:
-        """Show scan configuration summary and get confirmation"""
-        print(f"\n{Colors.BOLD}📋 Scan Configuration Summary:{Colors.END}")
-        print(f"  🎯 Target IP: {Colors.CYAN}{target_ip}{Colors.END}")
-        print(f"  📁 Output Directory: {Colors.CYAN}{output_dir}{Colors.END}")
-        print(f"  🔐 Enhanced Mode: {'✅ Enabled (sudo)' if enhanced_mode else '❌ Disabled (standard)'}")
-        print(f"\n{Colors.BOLD}📋 Selected modules ({len(selected_attacks)}):{Colors.END}")
+        """Show Full Sniper Mode scan summary"""
+        # Create summary table
+        summary_table = Table(title="📋 Full Sniper Mode Summary", show_header=True, header_style="bold cyan")
+        summary_table.add_column("Setting", style="cyan", width=12)
+        summary_table.add_column("Value", style="white")
         
-        for attack in selected_attacks:
-            enhanced_note = ""
-            if attack in ['nmap_quick', 'nmap_full'] and enhanced_mode:
-                enhanced_note = " (SYN scan + OS detection)"
-            elif attack == 'nmap_udp' and not enhanced_mode:
-                enhanced_note = " (will be skipped - requires sudo)"
-            elif attack == 'nmap_udp' and enhanced_mode:
-                enhanced_note = " (UDP scan enabled)"
-            print(f"  • {attack.replace('_', ' ').title()}{enhanced_note}")
+        summary_table.add_row("🎯 Target", target_ip)
+        summary_table.add_row("📁 Output", Path(output_dir).name)
+        summary_table.add_row("🔐 Mode", "Enhanced" if enhanced_mode else "Standard")
+        summary_table.add_row("🛠️  Tools", f"{len(selected_attacks)} reconnaissance modules")
+        summary_table.add_row("📊 Type", "[red]Full Sniper Mode[/red]")
         
-        confirm = input(f"\n{Colors.CYAN}🚀 Start reconnaissance? (y/N): {Colors.END}").strip().lower()
-        return confirm in ['y', 'yes'] 
+        self.console.print(summary_table)
+        
+        if Confirm.ask("\nStart Full Sniper Mode?", default=True):
+            self.console.print("🚀 Starting Full Sniper Mode...", style="green")
+            return True
+        else:
+            return False 
