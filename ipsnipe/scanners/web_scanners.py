@@ -141,7 +141,7 @@ class WebScanners:
         return port, best_port_info['url']
     
     def get_wordlist_path(self, wordlist_type: str) -> str:
-        """Get the path to a wordlist file"""
+        """Get the path to a wordlist file with better fallback handling"""
         wordlist_config = self.config['wordlists']
         
         # Direct mapping
@@ -163,8 +163,24 @@ class WebScanners:
                 print(f"{Colors.YELLOW}⚠️  Using fallback wordlist: {path}{Colors.END}")
                 return path
         
+        # Try to use wordlist manager for fallback
+        if self.wordlist_manager:
+            try:
+                _, fallback_path = self.wordlist_manager._get_default_wordlist()
+                if fallback_path:
+                    print(f"{Colors.YELLOW}⚠️  Using wordlist manager fallback: {fallback_path}{Colors.END}")
+                    return fallback_path
+            except:
+                pass
+        
         # Create minimal wordlist as last resort
-        return self.create_minimal_wordlist()
+        minimal_path = self.create_minimal_wordlist()
+        if minimal_path:
+            print(f"{Colors.YELLOW}⚠️  Using minimal wordlist: {minimal_path}{Colors.END}")
+            return minimal_path
+        
+        print(f"{Colors.RED}❌ No wordlists available and cannot create minimal wordlist{Colors.END}")
+        return None
     
     def get_ffuf_wordlist_path(self) -> str:
         """Get the path to FFUF-specific wordlist (subdomain-focused)"""
@@ -197,30 +213,33 @@ class WebScanners:
         return self.get_wordlist_path('common')
     
     def get_ferox_wordlist_path(self, size: str = 'small') -> str:
-        """Get the path to a Feroxbuster-specific wordlist file"""
-        from ..ui.colors import Colors
+        """Get the path to a Feroxbuster-specific wordlist file with better fallback handling"""
+        ferox_config = self.config['feroxbuster']
         
-        wordlist_config = self.config['wordlists']
+        # Use wordlist manager if available
+        if self.wordlist_manager:
+            try:
+                _, wordlist_path = self.wordlist_manager._get_default_wordlist()
+                if wordlist_path:
+                    return wordlist_path
+            except:
+                pass
         
-        # Use tool-specific wordlist preferences
-        if size == 'small':
-            wordlist_key = 'ferox_small'
-        elif size == 'medium':
-            wordlist_key = 'ferox_medium'
-        elif size == 'large':
-            wordlist_key = 'ferox_large'
-        else:
-            wordlist_key = 'ferox_small'  # Default fallback
-        
-        if wordlist_key in wordlist_config:
-            wordlist_path = wordlist_config[wordlist_key]
+        # Try size-specific wordlist from config
+        size_key = f'wordlist_{size}'
+        if size_key in ferox_config:
+            wordlist_path = ferox_config[size_key]
             if Path(wordlist_path).exists():
-                print(f"{Colors.GREEN}📋 Using Feroxbuster-optimized wordlist: {wordlist_path}{Colors.END}")
                 return wordlist_path
         
-        # Fallback to generic wordlist selection
-        print(f"{Colors.YELLOW}⚠️  Feroxbuster-specific wordlist not found, falling back to generic selection{Colors.END}")
-        return self.get_wordlist_path(size)
+        # Default feroxbuster wordlist
+        if 'wordlist' in ferox_config:
+            wordlist_path = ferox_config['wordlist']
+            if Path(wordlist_path).exists():
+                return wordlist_path
+        
+        # Fallback to general wordlist method
+        return self.get_wordlist_path('common')
     
     def create_minimal_wordlist(self) -> str:
         """Create a minimal wordlist if none are found"""
@@ -254,13 +273,18 @@ class WebScanners:
             except KeyboardInterrupt:
                 print(f"\n{Colors.YELLOW}⏭️  Skipping Feroxbuster - user cancelled wordlist selection{Colors.END}")
                 return {'status': 'skipped', 'reason': 'User cancelled wordlist selection'}
+            except Exception as e:
+                print(f"{Colors.RED}❌ Error getting wordlist: {str(e)}{Colors.END}")
+                print(f"{Colors.YELLOW}⚠️  Falling back to default wordlist method{Colors.END}")
+                wordlist_path = self.get_ferox_wordlist_path('medium')
+                wordlist_type = 'medium'
         else:
             # Fallback to default medium wordlist
             wordlist_path = self.get_ferox_wordlist_path('medium')
             wordlist_type = 'medium'
         
         if not wordlist_path:
-            return {'status': 'failed', 'reason': 'No wordlist available'}
+            return {'status': 'failed', 'reason': 'No wordlist available - ensure wordlists are installed or running in HTB environment'}
         
         print(f"{Colors.GREEN}🦀 Running Feroxbuster directory enumeration{Colors.END}")
         print(f"{Colors.CYAN}🎯 Target: {base_url}{Colors.END}")
@@ -304,11 +328,72 @@ class WebScanners:
         
         # Fallback if no subdomain wordlists found
         if not wordlists:
-            fallback = self.get_wordlist_path('common')
-            wordlists.append(fallback)
-            print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using fallback: {fallback}{Colors.END}")
+            # Try to use wordlist manager for fallback
+            if self.wordlist_manager:
+                try:
+                    _, fallback_path = self.wordlist_manager._get_default_wordlist()
+                    if fallback_path:
+                        wordlists.append(fallback_path)
+                        print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using fallback: {fallback_path}{Colors.END}")
+                except:
+                    # Create minimal subdomain wordlist as last resort
+                    minimal_path = self.create_minimal_subdomain_wordlist()
+                    if minimal_path:
+                        wordlists.append(minimal_path)
+                        print(f"{Colors.YELLOW}⚠️  Created minimal subdomain wordlist: {minimal_path}{Colors.END}")
+            else:
+                # Fallback to generic wordlist method
+                fallback = self.get_wordlist_path('common')
+                if fallback:
+                    wordlists.append(fallback)
+                    print(f"{Colors.YELLOW}⚠️  No subdomain wordlists found, using fallback: {fallback}{Colors.END}")
+                else:
+                    # Create minimal subdomain wordlist as last resort
+                    minimal_path = self.create_minimal_subdomain_wordlist()
+                    if minimal_path:
+                        wordlists.append(minimal_path)
+                        print(f"{Colors.YELLOW}⚠️  Created minimal subdomain wordlist: {minimal_path}{Colors.END}")
         
         return wordlists
+
+    def create_minimal_subdomain_wordlist(self) -> str:
+        """Create a minimal subdomain wordlist for FFUF when no others are available"""
+        # Common subdomain names for HTB and general pentest scenarios
+        minimal_subdomains = [
+            'www', 'mail', 'ftp', 'localhost', 'webmail', 'smtp', 'pop', 'ns1', 'webdisk',
+            'ns2', 'cpanel', 'whm', 'autopilot', 'autoconfig', 'autodiscover', 'm', 'imap',
+            'test', 'ns', 'blog', 'pop3', 'dev', 'www2', 'admin', 'forum', 'news', 'vpn',
+            'ns3', 'mail2', 'new', 'mysql', 'old', 'lists', 'support', 'mobile', 'mx',
+            'static', 'docs', 'beta', 'shop', 'sql', 'secure', 'demo', 'cp', 'calendar',
+            'wiki', 'web', 'media', 'email', 'images', 'img', 'www1', 'intranet', 'portal',
+            'video', 'sip', 'dns2', 'api', 'cdn', 'stats', 'dns1', 'ns4', 'www3', 'dns',
+            'search', 'staging', 'server', 'mx1', 'chat', 'wap', 'my', 'svn', 'mail1',
+            'sites', 'proxy', 'ads', 'host', 'crm', 'cms', 'backup', 'mx2', 'lyncdiscover',
+            'info', 'apps', 'download', 'remote', 'db', 'forums', 'store', 'relay',
+            'files', 'newsletter', 'app', 'live', 'owa', 'en', 'start', 'sms', 'office',
+            'exchange', 'ipv4', 'mail3', 'help', 'blogs', 'helpdesk', 'web1', 'home',
+            'library', 'ftp2', 'ntp', 'monitor', 'login', 'service', 'correo', 'www4',
+            'moodle', 'mail4', 'payment', 'us', 'webmail2', 'mailing', 'api2', 'ab',
+            'fs', 'mirror', 'imap4', 'a', 'ntp1', 'resources', 'c', 'b', 'blackboard',
+            'cvs', 'guest'
+        ]
+        
+        # Create temporary subdomain wordlist file
+        try:
+            import tempfile
+            import os
+            
+            # Create a temporary file that will be cleaned up later
+            fd, minimal_path = tempfile.mkstemp(suffix='_minimal_subdomains.txt', prefix='ipsnipe_')
+            with os.fdopen(fd, 'w') as f:
+                f.write('\n'.join(minimal_subdomains))
+            
+            print(f"{Colors.YELLOW}⚠️  Created minimal subdomain wordlist: {minimal_path}{Colors.END}")
+            return minimal_path
+        
+        except Exception as e:
+            print(f"{Colors.RED}❌ Error creating minimal subdomain wordlist: {str(e)}{Colors.END}")
+            return None
 
     def ffuf_scan(self, target_ip: str, web_ports: List[int], run_command_func) -> Dict:
         """Run FFUF subdomain enumeration with multiple wordlists"""
@@ -341,10 +426,23 @@ class WebScanners:
                 
                 if mode_choice == '2':
                     # Switch to directory fuzzing mode with wordlist selection
-                    wordlist_type, wordlist_path = self.wordlist_manager.prompt_wordlist_selection("FFUF directory fuzzing")
-                    wordlists = [wordlist_path]
-                    fuzzing_mode = 'directory'
-                    target_pattern = f"{base_url}/FUZZ"
+                    try:
+                        wordlist_type, wordlist_path = self.wordlist_manager.prompt_wordlist_selection("FFUF directory fuzzing")
+                        if not wordlist_path:
+                            print(f"{Colors.RED}❌ No wordlist available for directory fuzzing, falling back to subdomain enumeration{Colors.END}")
+                            wordlists = self.get_multiple_ffuf_wordlists()
+                            fuzzing_mode = 'subdomain'
+                            target_pattern = f"http://FUZZ.{base_domain}"
+                        else:
+                            wordlists = [wordlist_path]
+                            fuzzing_mode = 'directory'
+                            target_pattern = f"{base_url}/FUZZ"
+                    except Exception as e:
+                        print(f"{Colors.RED}❌ Error getting wordlist for directory fuzzing: {str(e)}{Colors.END}")
+                        print(f"{Colors.YELLOW}⚠️  Falling back to subdomain enumeration mode{Colors.END}")
+                        wordlists = self.get_multiple_ffuf_wordlists()
+                        fuzzing_mode = 'subdomain'
+                        target_pattern = f"http://FUZZ.{base_domain}"
                 else:
                     # Use subdomain enumeration mode with specialized wordlists
                     wordlists = self.get_multiple_ffuf_wordlists()
@@ -361,17 +459,22 @@ class WebScanners:
             fuzzing_mode = 'subdomain'
             target_pattern = f"http://FUZZ.{base_domain}"
         
+        # Check if we have any valid wordlists
+        if not wordlists or not any(w for w in wordlists):
+            return {'status': 'failed', 'reason': 'No valid wordlists available - ensure wordlists are installed or running in HTB environment'}
+        
         print(f"{Colors.GREEN}💨 Running FFUF {fuzzing_mode} enumeration with {len(wordlists)} wordlist(s){Colors.END}")
         if fuzzing_mode == 'subdomain':
             print(f"{Colors.CYAN}🎯 Target domain: {base_domain}{Colors.END}")
         else:
             print(f"{Colors.CYAN}🎯 Target URL: {base_url}{Colors.END}")
-        print(f"{Colors.CYAN}📋 Wordlists: {', '.join([Path(w).name for w in wordlists])}{Colors.END}")
+        print(f"{Colors.CYAN}📋 Wordlists: {', '.join([Path(w).name for w in wordlists if w])}{Colors.END}")
         
         ffuf_config = self.config['ffuf']
         
         # Combine all wordlists into a single comma-separated string for ffuf
-        combined_wordlists = ','.join(wordlists)
+        valid_wordlists = [w for w in wordlists if w]
+        combined_wordlists = ','.join(valid_wordlists)
         
         command = [
             'ffuf',

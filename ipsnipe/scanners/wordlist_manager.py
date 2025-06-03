@@ -692,7 +692,12 @@ class WordlistManager:
         
         if not options:
             print(f"{Colors.YELLOW}⚠️  No wordlists found, will create minimal fallback{Colors.END}")
-            return 'minimal', self._create_minimal_wordlist()
+            minimal_path = self._create_minimal_wordlist()
+            if minimal_path:
+                return 'minimal', minimal_path
+            else:
+                print(f"{Colors.RED}❌ Cannot create minimal wordlist fallback{Colors.END}")
+                raise Exception("No wordlists available and cannot create fallback")
         
         print(f"\n{Colors.BOLD}Available HTB-Optimized Wordlists:{Colors.END}")
         
@@ -889,7 +894,13 @@ class WordlistManager:
                     return key, path
         
         # Last resort - create minimal wordlist
-        return 'minimal', self._create_minimal_wordlist()
+        minimal_path = self._create_minimal_wordlist()
+        if minimal_path:
+            return 'minimal', minimal_path
+        else:
+            # Absolute fallback - return None to indicate no wordlist available
+            print(f"{Colors.RED}❌ Unable to create any wordlist fallback{Colors.END}")
+            return None, None
     
     def _create_minimal_wordlist(self) -> str:
         """Create a minimal HTB-optimized wordlist as fallback"""
